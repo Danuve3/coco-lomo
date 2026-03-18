@@ -13,6 +13,7 @@ import {
 } from '../engine/game';
 import { evaluateAi } from '../engine/ai';
 import { isForestEmpty, computeCollection } from '../engine/forest';
+import { saveGame, clearGame } from '../utils/gamePersistence';
 
 type Listener = (state: GameState) => void;
 
@@ -23,8 +24,8 @@ export class GameStore {
   private _state: GameState;
   private _listeners = new Set<Listener>();
 
-  constructor(config: GameConfig) {
-    this._state = createInitialState(config);
+  constructor(source: GameConfig | GameState) {
+    this._state = 'phase' in source ? source : createInitialState(source);
   }
 
   get state(): GameState {
@@ -38,6 +39,11 @@ export class GameStore {
 
   private setState(newState: GameState): void {
     this._state = newState;
+    if (newState.phase === 'GAME_END') {
+      clearGame();
+    } else {
+      saveGame(newState);
+    }
     this._listeners.forEach(fn => fn(this._state));
   }
 
@@ -94,6 +100,7 @@ export class GameStore {
   }
 
   newGame(config: GameConfig): void {
+    clearGame();
     this.setState(createInitialState(config));
   }
 

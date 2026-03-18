@@ -18,12 +18,12 @@ export class GameScreen {
 
   constructor(
     container: HTMLElement,
-    config: GameConfig,
+    source: GameConfig | GameState,
     onGameEnd: (state: GameState) => void,
     onRules: () => void,
   ) {
     this.el = container;
-    this.store = new GameStore(config);
+    this.store = new GameStore(source);
     this.onGameEnd = onGameEnd;
     this.onRules = onRules;
   }

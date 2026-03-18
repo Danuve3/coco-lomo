@@ -7,6 +7,7 @@ import { ResultScreen } from './components/screens/ResultScreen';
 import { StatsScreen } from './components/screens/StatsScreen';
 import { initTheme } from './utils/theme';
 import { saveGameResult } from './utils/stats';
+import { loadGame, clearGame } from './utils/gamePersistence';
 
 type Screen = 'start' | 'game' | 'rules' | 'result' | 'stats';
 
@@ -67,15 +68,31 @@ class App {
   }
 
   private renderStart(): void {
+    const savedState = loadGame();
     const startScreen = new StartScreen(
       this.startEl,
       (config: GameConfig) => {
+        clearGame();
         this.lastConfig = config;
         this.startGame(config);
       },
       () => this.showStats(),
+      savedState ? () => this.resumeGame(savedState) : null,
     );
     startScreen.render();
+  }
+
+  private resumeGame(savedState: ReturnType<typeof loadGame>): void {
+    if (!savedState) return;
+    this.activeGameScreen?.unmount();
+    this.activeGameScreen = new GameScreen(
+      this.gameEl,
+      savedState,
+      (finalState: GameState) => { this.showResult(finalState); },
+      () => { this.showRulesFromGame(); },
+    );
+    this.activeGameScreen.mount();
+    this.showScreen('game');
   }
 
   private showStats(): void {
@@ -87,21 +104,13 @@ class App {
   }
 
   private startGame(config: GameConfig): void {
-    // Desmontar partida anterior si existía
     this.activeGameScreen?.unmount();
-
     this.activeGameScreen = new GameScreen(
       this.gameEl,
       config,
-      (finalState: GameState) => {
-        this.showResult(finalState);
-      },
-      () => {
-        // Reglas desde dentro del juego — volver al juego al salir
-        this.showRulesFromGame();
-      },
+      (finalState: GameState) => { this.showResult(finalState); },
+      () => { this.showRulesFromGame(); },
     );
-
     this.activeGameScreen.mount();
     this.showScreen('game');
   }

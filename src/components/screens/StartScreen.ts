@@ -1,5 +1,6 @@
 import type { GameConfig, Difficulty, FirstPlayer } from '../../engine/types';
 import { toggleTheme, getTheme, themeIcon } from '../../utils/theme';
+import { loadGame, clearGame } from '../../utils/gamePersistence';
 
 export class StartScreen {
   private el: HTMLElement;
@@ -10,11 +11,43 @@ export class StartScreen {
   private selectedFirstPlayer: FirstPlayer = 'RANDOM';
   private extinctionEnabled = true;
   private acrobaticEnabled = true;
+  private onResume: (() => void) | null;
 
-  constructor(container: HTMLElement, onStart: (config: GameConfig) => void, onStats: () => void) {
+  constructor(
+    container: HTMLElement,
+    onStart: (config: GameConfig) => void,
+    onStats: () => void,
+    onResume: (() => void) | null = null,
+  ) {
     this.el = container;
     this.onStart = onStart;
     this.onStats = onStats;
+    this.onResume = onResume;
+  }
+
+  private resumeBannerHTML(): string {
+    if (!this.onResume) return '';
+    const saved = loadGame();
+    if (!saved) return '';
+
+    const diffLabel = saved.difficulty === 'EASY' ? 'Fácil' : saved.difficulty === 'HARD' ? 'Difícil' : 'Extremo';
+    const phaseLabel =
+      saved.phase === 'PLAYER_SELECT' ? 'Eligiendo ficha' :
+      saved.phase === 'PLAYER_PLACE' || saved.phase === 'PLAYER_CONFIRM' ? 'Colocando fichas' :
+      'Turno de la IA';
+
+    return `
+      <div class="resume-banner" id="resume-banner">
+        <div class="resume-banner__info">
+          <span class="resume-banner__title">▶ Partida guardada</span>
+          <span class="resume-banner__meta">Ronda ${saved.round} · ${diffLabel} · ${phaseLabel}</span>
+        </div>
+        <div class="resume-banner__actions">
+          <button class="btn btn--primary btn--sm" id="btn-resume">Continuar</button>
+          <button class="btn btn--ghost btn--sm" id="btn-discard-save">Descartar</button>
+        </div>
+      </div>
+    `;
   }
 
   render(): void {
@@ -25,6 +58,8 @@ export class StartScreen {
           <button class="theme-toggle" id="btn-theme" title="Cambiar tema" aria-label="Cambiar tema">${themeIcon(theme)}</button>
           <button class="btn btn--ghost btn--sm" id="btn-stats-nav">📊 Estadísticas</button>
         </div>
+
+        ${this.resumeBannerHTML()}
 
         <div class="start-screen__hero">
           <div class="start-logo">
@@ -183,6 +218,15 @@ export class StartScreen {
     themeBtn?.addEventListener('click', () => {
       const next = toggleTheme();
       if (themeBtn) themeBtn.textContent = themeIcon(next);
+    });
+
+    // Resume banner
+    this.el.querySelector('#btn-resume')?.addEventListener('click', () => {
+      this.onResume?.();
+    });
+    this.el.querySelector('#btn-discard-save')?.addEventListener('click', () => {
+      clearGame();
+      this.el.querySelector('#resume-banner')?.remove();
     });
   }
 }
