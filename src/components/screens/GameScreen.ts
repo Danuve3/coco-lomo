@@ -3,6 +3,7 @@ import { GameStore } from '../../store/gameStore';
 import { ForestBoard } from '../ForestBoard';
 import { PlayerBoard } from '../PlayerBoard';
 import { ScorePanel } from '../ScorePanel';
+import { toggleTheme, getTheme, themeIcon } from '../../utils/theme';
 
 export class GameScreen {
   private el: HTMLElement;
@@ -46,6 +47,7 @@ export class GameScreen {
         <header class="game-header">
           <span class="game-header__logo">🌲 Coco Lomo</span>
           <nav class="game-header__nav">
+            <button class="theme-toggle theme-toggle--sm" id="btn-theme-game" title="Cambiar tema" aria-label="Cambiar tema">${themeIcon(getTheme())}</button>
             <button class="btn btn--ghost btn--xs" id="btn-rules-ingame" title="Ver reglas">?</button>
           </nav>
         </header>
@@ -90,6 +92,12 @@ export class GameScreen {
     forestEl.addEventListener('forest:cancel', () => this.store.cancelSelection());
 
     this.el.querySelector('#btn-rules-ingame')?.addEventListener('click', () => this.onRules());
+
+    const themeBtn = this.el.querySelector<HTMLButtonElement>('#btn-theme-game');
+    themeBtn?.addEventListener('click', () => {
+      const next = toggleTheme();
+      if (themeBtn) themeBtn.textContent = themeIcon(next);
+    });
   }
 
   private update(state: GameState): void {

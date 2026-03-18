@@ -4,8 +4,13 @@ import { StartScreen } from './components/screens/StartScreen';
 import { GameScreen } from './components/screens/GameScreen';
 import { RulesScreen } from './components/screens/RulesScreen';
 import { ResultScreen } from './components/screens/ResultScreen';
+import { StatsScreen } from './components/screens/StatsScreen';
+import { initTheme } from './utils/theme';
+import { saveGameResult } from './utils/stats';
 
-type Screen = 'start' | 'game' | 'rules' | 'result';
+type Screen = 'start' | 'game' | 'rules' | 'result' | 'stats';
+
+initTheme();
 
 class App {
   private appEl: HTMLElement;
@@ -17,6 +22,7 @@ class App {
   private gameEl!: HTMLElement;
   private rulesEl!: HTMLElement;
   private resultEl!: HTMLElement;
+  private statsEl!: HTMLElement;
 
   constructor(root: HTMLElement) {
     this.appEl = root;
@@ -30,12 +36,14 @@ class App {
       <div id="screen-game" class="screen"></div>
       <div id="screen-rules" class="screen"></div>
       <div id="screen-result" class="screen"></div>
+      <div id="screen-stats" class="screen"></div>
     `;
 
     this.startEl = document.getElementById('screen-start')!;
     this.gameEl = document.getElementById('screen-game')!;
     this.rulesEl = document.getElementById('screen-rules')!;
     this.resultEl = document.getElementById('screen-result')!;
+    this.statsEl = document.getElementById('screen-stats')!;
 
     // Navegación global desde eventos custom
     this.appEl.addEventListener('nav:rules', () => this.showScreen('rules'));
@@ -44,7 +52,7 @@ class App {
   }
 
   private showScreen(screen: Screen): void {
-    [this.startEl, this.gameEl, this.rulesEl, this.resultEl].forEach(el =>
+    [this.startEl, this.gameEl, this.rulesEl, this.resultEl, this.statsEl].forEach(el =>
       el.classList.remove('screen--active'),
     );
 
@@ -53,16 +61,29 @@ class App {
       game: this.gameEl,
       rules: this.rulesEl,
       result: this.resultEl,
+      stats: this.statsEl,
     };
     map[screen].classList.add('screen--active');
   }
 
   private renderStart(): void {
-    const startScreen = new StartScreen(this.startEl, (config: GameConfig) => {
-      this.lastConfig = config;
-      this.startGame(config);
-    });
+    const startScreen = new StartScreen(
+      this.startEl,
+      (config: GameConfig) => {
+        this.lastConfig = config;
+        this.startGame(config);
+      },
+      () => this.showStats(),
+    );
     startScreen.render();
+  }
+
+  private showStats(): void {
+    const statsScreen = new StatsScreen(this.statsEl, () => {
+      this.showScreen('start');
+    });
+    statsScreen.render();
+    this.showScreen('stats');
   }
 
   private startGame(config: GameConfig): void {
@@ -94,6 +115,8 @@ class App {
   }
 
   private showResult(state: GameState): void {
+    saveGameResult(state);
+
     const resultScreen = new ResultScreen(
       this.resultEl,
       () => {

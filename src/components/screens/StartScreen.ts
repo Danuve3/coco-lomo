@@ -1,22 +1,31 @@
 import type { GameConfig, Difficulty, FirstPlayer } from '../../engine/types';
+import { toggleTheme, getTheme, themeIcon } from '../../utils/theme';
 
 export class StartScreen {
   private el: HTMLElement;
   private onStart: (config: GameConfig) => void;
+  private onStats: () => void;
 
   private selectedDifficulty: Difficulty = 'HARD';
   private selectedFirstPlayer: FirstPlayer = 'RANDOM';
   private extinctionEnabled = true;
   private acrobaticEnabled = true;
 
-  constructor(container: HTMLElement, onStart: (config: GameConfig) => void) {
+  constructor(container: HTMLElement, onStart: (config: GameConfig) => void, onStats: () => void) {
     this.el = container;
     this.onStart = onStart;
+    this.onStats = onStats;
   }
 
   render(): void {
+    const theme = getTheme();
     this.el.innerHTML = `
       <div class="start-screen">
+        <div class="start-screen__topbar">
+          <button class="theme-toggle" id="btn-theme" title="Cambiar tema" aria-label="Cambiar tema">${themeIcon(theme)}</button>
+          <button class="btn btn--ghost btn--sm" id="btn-stats-nav">📊 Estadísticas</button>
+        </div>
+
         <div class="start-screen__hero">
           <div class="start-logo">
             <span class="start-logo__forest">🌲</span>
@@ -46,7 +55,7 @@ export class StartScreen {
 
           <section class="config-section">
             <h2 class="config-section__title">Dificultad de la IA</h2>
-            <div class="toggle-group" role="radiogroup" aria-label="Dificultad">
+            <div class="toggle-group toggle-group--3" role="radiogroup" aria-label="Dificultad">
               <button class="toggle-btn" data-diff="EASY" role="radio" aria-checked="false">
                 🐣 Fácil
                 <span class="toggle-btn__desc">Semi-aleatoria, ideal para aprender.</span>
@@ -54,6 +63,10 @@ export class StartScreen {
               <button class="toggle-btn toggle-btn--active" data-diff="HARD" role="radio" aria-checked="true">
                 🧠 Difícil
                 <span class="toggle-btn__desc">Evalúa cada jugada. ¡Desafiante!</span>
+              </button>
+              <button class="toggle-btn toggle-btn--extreme" data-diff="EXTREME" role="radio" aria-checked="false">
+                🔥 Extremo
+                <span class="toggle-btn__desc">Adversarial: te corta el paso.</span>
               </button>
             </div>
           </section>
@@ -162,6 +175,14 @@ export class StartScreen {
 
     this.el.querySelector('#btn-rules')?.addEventListener('click', () => {
       this.el.dispatchEvent(new CustomEvent('nav:rules', { bubbles: true }));
+    });
+
+    this.el.querySelector('#btn-stats-nav')?.addEventListener('click', () => this.onStats());
+
+    const themeBtn = this.el.querySelector<HTMLButtonElement>('#btn-theme');
+    themeBtn?.addEventListener('click', () => {
+      const next = toggleTheme();
+      if (themeBtn) themeBtn.textContent = themeIcon(next);
     });
   }
 }
