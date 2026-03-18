@@ -1,0 +1,167 @@
+import type { GameConfig, Difficulty, FirstPlayer } from '../../engine/types';
+
+export class StartScreen {
+  private el: HTMLElement;
+  private onStart: (config: GameConfig) => void;
+
+  private selectedDifficulty: Difficulty = 'HARD';
+  private selectedFirstPlayer: FirstPlayer = 'RANDOM';
+  private extinctionEnabled = true;
+  private acrobaticEnabled = true;
+
+  constructor(container: HTMLElement, onStart: (config: GameConfig) => void) {
+    this.el = container;
+    this.onStart = onStart;
+  }
+
+  render(): void {
+    this.el.innerHTML = `
+      <div class="start-screen">
+        <div class="start-screen__hero">
+          <div class="start-logo">
+            <span class="start-logo__forest">🌲</span>
+            <h1 class="start-logo__title">Coco Lomo</h1>
+            <p class="start-logo__subtitle">El bosque de las fichas</p>
+          </div>
+        </div>
+
+        <div class="start-screen__config">
+          <section class="config-section">
+            <h2 class="config-section__title">Quién empieza</h2>
+            <div class="toggle-group toggle-group--3" role="radiogroup" aria-label="Primer turno">
+              <button class="toggle-btn" data-first="HUMAN" role="radio" aria-checked="false">
+                🧑 Usuario
+                <span class="toggle-btn__desc">Tú mueves primero.</span>
+              </button>
+              <button class="toggle-btn" data-first="AI" role="radio" aria-checked="false">
+                🤖 CPU
+                <span class="toggle-btn__desc">La IA mueve primero.</span>
+              </button>
+              <button class="toggle-btn toggle-btn--active" data-first="RANDOM" role="radio" aria-checked="true">
+                🎲 Aleatorio
+                <span class="toggle-btn__desc">Se decide al azar.</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="config-section">
+            <h2 class="config-section__title">Dificultad de la IA</h2>
+            <div class="toggle-group" role="radiogroup" aria-label="Dificultad">
+              <button class="toggle-btn" data-diff="EASY" role="radio" aria-checked="false">
+                🐣 Fácil
+                <span class="toggle-btn__desc">Semi-aleatoria, ideal para aprender.</span>
+              </button>
+              <button class="toggle-btn toggle-btn--active" data-diff="HARD" role="radio" aria-checked="true">
+                🧠 Difícil
+                <span class="toggle-btn__desc">Evalúa cada jugada. ¡Desafiante!</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="config-section">
+            <h2 class="config-section__title">Expansiones</h2>
+
+            <label class="expansion-toggle" id="exp-extinction-label">
+              <div class="expansion-toggle__info">
+                <span class="expansion-toggle__name">🌿 Extinción</span>
+                <span class="expansion-toggle__desc">
+                  Un animal o color aleatorio. Al final, quien tenga <em>menos</em> de ese tipo: +7 pts.
+                </span>
+              </div>
+              <div class="switch switch--active" role="switch" aria-checked="true" aria-labelledby="exp-extinction-label" tabindex="0" id="switch-extinction">
+                <div class="switch__thumb"></div>
+              </div>
+            </label>
+
+            <label class="expansion-toggle" id="exp-acrobatic-label">
+              <div class="expansion-toggle__info">
+                <span class="expansion-toggle__name">🎪 Acrobacia</span>
+                <span class="expansion-toggle__desc">
+                  Un animal aleatorio. Si está en última casilla de Fila 1 al final: +5 pts.
+                </span>
+              </div>
+              <div class="switch switch--active" role="switch" aria-checked="true" aria-labelledby="exp-acrobatic-label" tabindex="0" id="switch-acrobatic">
+                <div class="switch__thumb"></div>
+              </div>
+            </label>
+          </section>
+
+          <div class="start-screen__actions">
+            <button class="btn btn--primary btn--lg" id="btn-start">
+              Iniciar partida
+            </button>
+            <button class="btn btn--ghost btn--sm" id="btn-rules">
+              Ver reglas
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.attachListeners();
+  }
+
+  private attachListeners(): void {
+    // Primer jugador
+    this.el.querySelectorAll<HTMLButtonElement>('[data-first]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.selectedFirstPlayer = btn.dataset['first'] as FirstPlayer;
+        this.el.querySelectorAll('[data-first]').forEach(b => {
+          b.classList.remove('toggle-btn--active');
+          b.setAttribute('aria-checked', 'false');
+        });
+        btn.classList.add('toggle-btn--active');
+        btn.setAttribute('aria-checked', 'true');
+      });
+    });
+
+    // Dificultad
+    this.el.querySelectorAll<HTMLButtonElement>('[data-diff]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.selectedDifficulty = btn.dataset['diff'] as Difficulty;
+        this.el.querySelectorAll('[data-diff]').forEach(b => {
+          b.classList.remove('toggle-btn--active');
+          b.setAttribute('aria-checked', 'false');
+        });
+        btn.classList.add('toggle-btn--active');
+        btn.setAttribute('aria-checked', 'true');
+      });
+    });
+
+    // Expansiones
+    const switchExt = this.el.querySelector<HTMLElement>('#switch-extinction');
+    const switchAcro = this.el.querySelector<HTMLElement>('#switch-acrobatic');
+
+    const bindSwitch = (el: HTMLElement | null, onChange: (val: boolean) => void): void => {
+      if (!el) return;
+      const toggle = (): void => {
+        const active = el.getAttribute('aria-checked') === 'true';
+        el.setAttribute('aria-checked', String(!active));
+        el.classList.toggle('switch--active', !active);
+        onChange(!active);
+      };
+      el.addEventListener('click', toggle);
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+    };
+
+    bindSwitch(switchExt, val => { this.extinctionEnabled = val; });
+    bindSwitch(switchAcro, val => { this.acrobaticEnabled = val; });
+
+    this.el.querySelector('#btn-start')?.addEventListener('click', () => {
+      this.onStart({
+        difficulty: this.selectedDifficulty,
+        firstPlayer: this.selectedFirstPlayer,
+        expansionConfig: {
+          extinction: this.extinctionEnabled,
+          acrobatic: this.acrobaticEnabled,
+        },
+      });
+    });
+
+    this.el.querySelector('#btn-rules')?.addEventListener('click', () => {
+      this.el.dispatchEvent(new CustomEvent('nav:rules', { bubbles: true }));
+    });
+  }
+}

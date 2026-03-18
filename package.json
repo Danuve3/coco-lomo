@@ -1,0 +1,15 @@
+{
+  "name": "coco-lomo",
+  "version": "1.0.0",
+  "description": "Coco Lomo — Adaptación digital de Loco Momo",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vite": "^5.1.4",
+    "vite-plugin-pwa": "^0.19.2"
+  }
+}
