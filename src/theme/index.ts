@@ -6,19 +6,28 @@ export type { ColorDefinition } from './colors';
 import type { AnimalType, TileColor } from '../engine/types';
 import { ANIMAL_DEFS } from './animals';
 import { COLOR_DEFS } from './colors';
+import { getTileThemeId, getAnimalImageUrl } from '../utils/tileTheme';
 
-/** HTML de una ficha: emoji + nombre del color como data-attr */
+/** HTML de una ficha: imagen de tema o emoji como fallback */
 export function tileHTML(animal: AnimalType, color: TileColor, extraClass = ''): string {
   const a = ANIMAL_DEFS[animal];
   const c = COLOR_DEFS[color];
+  const themeId = getTileThemeId();
+  const imgUrl = getAnimalImageUrl(themeId, animal, color);
+  const iconContent = imgUrl
+    ? `<img class="tile__img" src="${imgUrl}" alt="${a.name}" />`
+    : `<span class="tile__icon">${a.icon}</span>`;
+  const style = imgUrl
+    ? `background:${c.bg};color:${c.text};border:none;`
+    : `background:${c.bg};color:${c.text};border-color:${c.border};`;
   return `<div
     class="tile ${extraClass}"
-    style="background:${c.bg};color:${c.text};border-color:${c.border};"
+    style="${style}"
     data-animal="${animal}"
     data-color="${color}"
     aria-label="${a.name} ${c.name}"
     title="${a.name} — ${c.name}"
-  ><span class="tile__icon">${a.icon}</span></div>`;
+  >${iconContent}</div>`;
 }
 
 /** Icono del animal como string (emoji o SVG inline en el futuro) */

@@ -1,13 +1,15 @@
 import type { GameConfig, Difficulty, FirstPlayer } from '../../engine/types';
 import { toggleTheme, getTheme, themeIcon } from '../../utils/theme';
 import { loadGame, clearGame } from '../../utils/gamePersistence';
+import { TILE_THEMES, getTileThemeId, setTileThemeId, getAnimalImageUrl } from '../../utils/tileTheme';
+import type { TileThemeId } from '../../utils/tileTheme';
 
 export class StartScreen {
   private el: HTMLElement;
   private onStart: (config: GameConfig) => void;
   private onStats: () => void;
 
-  private selectedDifficulty: Difficulty = 'HARD';
+  private selectedDifficulty: Difficulty = 'EXTREME';
   private selectedFirstPlayer: FirstPlayer = 'RANDOM';
   private extinctionEnabled = true;
   private acrobaticEnabled = true;
@@ -23,6 +25,23 @@ export class StartScreen {
     this.onStart = onStart;
     this.onStats = onStats;
     this.onResume = onResume;
+  }
+
+  private tileThemeButtonsHTML(): string {
+    const current = getTileThemeId();
+    return TILE_THEMES.map(theme => {
+      const active = theme.id === current ? 'tile-theme-btn--active' : '';
+      const imgUrl = theme.hasImages ? getAnimalImageUrl(theme.id, 'RABBIT', 'TERRACOTTA') : null;
+      const preview = imgUrl
+        ? `<img src="${imgUrl}" alt="${theme.name}" />`
+        : `🐇`;
+      return `
+        <button class="tile-theme-btn ${active}" data-tile-theme="${theme.id}" role="radio" aria-checked="${theme.id === current}">
+          <div class="tile-theme-preview">${preview}</div>
+          <span>${theme.name}</span>
+        </button>
+      `;
+    }).join('');
   }
 
   private resumeBannerHTML(): string {
@@ -55,7 +74,15 @@ export class StartScreen {
     this.el.innerHTML = `
       <div class="start-screen">
         <div class="start-screen__topbar">
-          <button class="theme-toggle" id="btn-theme" title="Cambiar tema" aria-label="Cambiar tema">${themeIcon(theme)}</button>
+          <div class="start-screen__topbar-left">
+            <button class="theme-toggle" id="btn-theme" title="Cambiar tema" aria-label="Cambiar tema">${themeIcon(theme)}</button>
+            <div class="tile-theme-picker">
+              <button class="theme-toggle" id="btn-tile-theme-start" title="Tema de fichas" aria-label="Tema de fichas">🎨</button>
+              <div class="tile-theme-dropdown hidden" id="tile-theme-dropdown-start">
+                ${this.tileThemeButtonsHTML()}
+              </div>
+            </div>
+          </div>
           <button class="btn btn--ghost btn--sm" id="btn-stats-nav">📊 Estadísticas</button>
         </div>
 
@@ -95,11 +122,11 @@ export class StartScreen {
                 🐣 Fácil
                 <span class="toggle-btn__desc">Semi-aleatoria, ideal para aprender.</span>
               </button>
-              <button class="toggle-btn toggle-btn--active" data-diff="HARD" role="radio" aria-checked="true">
+              <button class="toggle-btn" data-diff="HARD" role="radio" aria-checked="false">
                 🧠 Difícil
                 <span class="toggle-btn__desc">Evalúa cada jugada. ¡Desafiante!</span>
               </button>
-              <button class="toggle-btn toggle-btn--extreme" data-diff="EXTREME" role="radio" aria-checked="false">
+              <button class="toggle-btn toggle-btn--extreme toggle-btn--active" data-diff="EXTREME" role="radio" aria-checked="true">
                 🔥 Extremo
                 <span class="toggle-btn__desc">Adversarial: te corta el paso.</span>
               </button>
@@ -196,6 +223,31 @@ export class StartScreen {
 
     bindSwitch(switchExt, val => { this.extinctionEnabled = val; });
     bindSwitch(switchAcro, val => { this.acrobaticEnabled = val; });
+
+    // Tile theme picker (topbar)
+    const tileThemeBtn = this.el.querySelector<HTMLButtonElement>('#btn-tile-theme-start');
+    const tileThemeDropdown = this.el.querySelector<HTMLElement>('#tile-theme-dropdown-start');
+
+    tileThemeBtn?.addEventListener('click', e => {
+      e.stopPropagation();
+      tileThemeDropdown?.classList.toggle('hidden');
+    });
+
+    tileThemeDropdown?.querySelectorAll<HTMLButtonElement>('[data-tile-theme]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset['tileTheme'] as TileThemeId;
+        setTileThemeId(id);
+        tileThemeDropdown.querySelectorAll('[data-tile-theme]').forEach(b => {
+          b.classList.remove('tile-theme-btn--active');
+          b.setAttribute('aria-checked', 'false');
+        });
+        btn.classList.add('tile-theme-btn--active');
+        btn.setAttribute('aria-checked', 'true');
+        tileThemeDropdown.classList.add('hidden');
+      });
+    });
+
+    document.addEventListener('click', () => tileThemeDropdown?.classList.add('hidden'));
 
     this.el.querySelector('#btn-start')?.addEventListener('click', () => {
       this.onStart({

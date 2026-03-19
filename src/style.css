@@ -191,6 +191,16 @@ ul, ol { padding-left: 1.2em; }
 
 .tile__icon { line-height: 1; pointer-events: none; }
 
+.tile__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
 .tile--selected {
   transform: scale(1.12);
   box-shadow:
@@ -209,7 +219,7 @@ ul, ol { padding-left: 1.2em; }
 }
 
 /* Ficha dentro de la zona seleccionada pero con otro color */
-.tile--zone-dimmed { opacity: 0.35; filter: grayscale(0.4); }
+.tile--zone-dimmed { opacity: 0.65; filter: grayscale(0.2); }
 
 .tile--placed { animation: tile-drop 350ms cubic-bezier(0.34,1.56,0.64,1) both; }
 .tile--dropping { animation: tile-drop 350ms cubic-bezier(0.34,1.56,0.64,1) both; }
@@ -546,8 +556,8 @@ ul, ol { padding-left: 1.2em; }
 
 /* Zonas que no son la seleccionada */
 .forest-zone--dimmed {
-  opacity: 0.5;
-  filter: saturate(0.5);
+  opacity: 0.8;
+  filter: saturate(0.7);
   transition: opacity var(--transition), filter var(--transition);
 }
 .forest-zone__empty-text { font-size: 0.7rem; color: var(--text-3); }
@@ -1097,6 +1107,83 @@ ul, ol { padding-left: 1.2em; }
 }
 .toggle-btn--extreme.toggle-btn--active .toggle-btn__desc { color: rgba(224,90,90,0.65); }
 .toggle-btn--extreme:not(.toggle-btn--active):hover { border-color: rgba(224,90,90,0.5); }
+
+/* ─── Selector de tema de losetas ───────────────────────────────────────────── */
+.tile-theme-picker {
+  position: relative;
+}
+
+.tile-theme-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-md);
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  z-index: 200;
+  min-width: 130px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+
+.tile-theme-dropdown.hidden { display: none; }
+
+.tile-theme-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--r-sm);
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--text-1);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition), color var(--transition);
+  width: 100%;
+  text-align: left;
+}
+
+.tile-theme-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--border);
+}
+
+.tile-theme-btn--active {
+  border-color: var(--accent);
+  background: rgba(212, 168, 67, 0.08);
+  color: var(--accent);
+}
+
+.tile-theme-preview {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #C75B39;
+  font-size: 1rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.tile-theme-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.start-screen__topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
 
 /* ─── Pantalla de estadísticas ───────────────────────────────────────────────── */
 .stats-screen {
