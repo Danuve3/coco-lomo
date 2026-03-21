@@ -28,28 +28,28 @@ export interface ColorDefinition {
 }
 
 export const COLOR_DEFS: Record<TileColor, ColorDefinition> = {
-  TERRACOTTA: {
-    type: 'TERRACOTTA',
+  RED: {
+    type: 'RED',
     bg: '#C75B39',
     text: '#FFF3ED',
     border: '#E07050',
-    name: 'Terracota',
-    cssVar: '--tile-terracotta',
+    name: 'Rojo',
+    cssVar: '--tile-red',
   },
-  SAGE: {
-    type: 'SAGE',
+  GREEN: {
+    type: 'GREEN',
     bg: '#4D8C6F',
     text: '#F0FFF4',
     border: '#5EA882',
-    name: 'Salvia',
-    cssVar: '--tile-sage',
+    name: 'Verde',
+    cssVar: '--tile-green',
   },
-  INK: {
-    type: 'INK',
+  BLUE: {
+    type: 'BLUE',
     bg: '#3D5494',
     text: '#EEF0FF',
     border: '#5070B8',
-    name: 'Tinta',
-    cssVar: '--tile-ink',
+    name: 'Azul',
+    cssVar: '--tile-blue',
   },
 };

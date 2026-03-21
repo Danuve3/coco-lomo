@@ -47,7 +47,7 @@ export class GameScreen {
     const current = getTileThemeId();
     return TILE_THEMES.map(theme => {
       const active = theme.id === current ? 'tile-theme-btn--active' : '';
-      const imgUrl = theme.hasImages ? getAnimalImageUrl(theme.id, 'RABBIT', 'TERRACOTTA') : null;
+      const imgUrl = theme.hasImages ? getAnimalImageUrl(theme.id, 'RABBIT', 'RED') : null;
       const preview = imgUrl
         ? `<img src="${imgUrl}" alt="${theme.name}" />`
         : `🐇`;
@@ -156,7 +156,11 @@ export class GameScreen {
 
   private update(state: GameState): void {
     if (state.phase === 'GAME_END') {
-      this.onGameEnd(state);
+      this.forestBoard.render(state);
+      this.playerBoard.render(state);
+      this.aiBoard.render(state);
+      this.scorePanel.render(state);
+      this.showEndBanner(state);
       return;
     }
 
@@ -164,5 +168,34 @@ export class GameScreen {
     this.playerBoard.render(state);
     this.aiBoard.render(state);
     this.scorePanel.render(state);
+  }
+
+  private showEndBanner(state: GameState): void {
+    if (this.el.querySelector('.game-end-banner')) return;
+
+    const { playerScore, aiScore } = state;
+    const playerWins = playerScore.total > aiScore.total;
+    const tie = playerScore.total === aiScore.total;
+
+    const icon  = playerWins ? '🏆' : tie ? '🤝' : '😤';
+    const title = playerWins ? '¡Ganaste!' : tie ? '¡Empate!' : 'La IA ganó';
+    const mod   = playerWins ? 'banner--win' : tie ? 'banner--tie' : 'banner--loss';
+
+    const banner = document.createElement('div');
+    banner.className = `game-end-banner ${mod}`;
+    banner.innerHTML = `
+      <div class="game-end-banner__inner">
+        <span class="game-end-banner__icon">${icon}</span>
+        <span class="game-end-banner__title">${title}</span>
+        <button class="btn btn--primary btn--sm" id="btn-see-results">Ver puntuación final →</button>
+      </div>
+    `;
+
+    const gameScreen = this.el.querySelector<HTMLElement>('.game-screen');
+    gameScreen?.appendChild(banner);
+
+    banner.querySelector('#btn-see-results')?.addEventListener('click', () => {
+      this.onGameEnd(state);
+    });
   }
 }

@@ -1,7 +1,7 @@
 // Core game types — no UI dependencies
 
 export type AnimalType = 'RABBIT' | 'LEOPARD' | 'EAGLE' | 'BEAR' | 'DUCK';
-export type TileColor = 'TERRACOTTA' | 'SAGE' | 'INK';
+export type TileColor = 'RED' | 'GREEN' | 'BLUE';
 
 export interface Tile {
   readonly id: string;

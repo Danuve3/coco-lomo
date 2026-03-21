@@ -1,7 +1,7 @@
 import type { AnimalType, TileColor } from './types';
 
 export const ANIMALS: readonly AnimalType[] = ['RABBIT', 'LEOPARD', 'EAGLE', 'BEAR', 'DUCK'];
-export const COLORS: readonly TileColor[] = ['TERRACOTTA', 'SAGE', 'INK'];
+export const COLORS: readonly TileColor[] = ['RED', 'GREEN', 'BLUE'];
 
 export const BOARD_ROWS = 5;
 export const BOARD_COLS = 5;

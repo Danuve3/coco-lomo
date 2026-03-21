@@ -1,4 +1,4 @@
-import type { GameState, Board, Tile } from '../engine/types';
+import type { GameState, Board, Tile, AnimalType } from '../engine/types';
 import { tileHTML } from '../theme/index';
 import { availableRowSpace } from '../engine/scoring';
 
@@ -38,6 +38,7 @@ export class PlayerBoard {
     const label = this.isAi ? 'Tablero de la IA' : 'Tu tablero';
     const score = this.isAi ? state.aiScore : state.playerScore;
     const lastAiRow = this.isAi && state.aiLastMove ? state.aiLastMove.row : -1;
+    const acrobaticHint = state.expansionConfig.acrobatic ? state.expansionState.acrobaticTarget : null;
     this.currentPendingTiles = state.pendingTiles;
 
     // IDs de fichas en el tablero actual
@@ -57,7 +58,7 @@ export class PlayerBoard {
         <div class="player-board__grid-wrapper">
           <div class="player-board__grid">
             ${Array.from({ length: 5 }, (_, row) =>
-              this.rowHTML(board, row, isPlacePhase, lastAiRow, newTileIds),
+              this.rowHTML(board, row, isPlacePhase, lastAiRow, newTileIds, acrobaticHint),
             ).join('')}
           </div>
           <div class="player-board__row-hints">
@@ -87,6 +88,7 @@ export class PlayerBoard {
     isPlacePhase: boolean,
     highlightRow: number,
     newTileIds: Set<string>,
+    acrobaticHint: AnimalType | null,
   ): string {
     const hasSpace = availableRowSpace(board, row) > 0;
     const isHighlighted = row === highlightRow;
@@ -104,6 +106,9 @@ export class PlayerBoard {
       if (tile) {
         const isNew = newTileIds.has(tile.id) ? 'tile--new tile--dropping' : '';
         return tileHTML(tile.animal, tile.color, isNew);
+      }
+      if (row === 0 && col === 4 && acrobaticHint !== null) {
+        return tileHTML(acrobaticHint, 'RED', 'tile--acrobatic-hint');
       }
       return `<div class="board-cell board-cell--empty"></div>`;
     }).join('');

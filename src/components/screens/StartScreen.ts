@@ -31,7 +31,7 @@ export class StartScreen {
     const current = getTileThemeId();
     return TILE_THEMES.map(theme => {
       const active = theme.id === current ? 'tile-theme-btn--active' : '';
-      const imgUrl = theme.hasImages ? getAnimalImageUrl(theme.id, 'RABBIT', 'TERRACOTTA') : null;
+      const imgUrl = theme.hasImages ? getAnimalImageUrl(theme.id, 'RABBIT', 'RED') : null;
       const preview = imgUrl
         ? `<img src="${imgUrl}" alt="${theme.name}" />`
         : `🐇`;
@@ -69,8 +69,71 @@ export class StartScreen {
     `;
   }
 
+  private static readonly TITLES = [
+    'Coco Lomo', 'Moco Loco', 'Lomo Coco', 'Molo Como', 'Como Lomo', 'Lolo Como', 'Molo Como',
+  ];
+
+  private static readonly SUBTITLES = [
+    'La IA no tiene sentimientos. Tú sí. Mala suerte.',
+    'Coloca fichas. Sufre. Repite.',
+    'Tu turno. La IA ya lo vio.',
+    'El bosque más injusto del mundo digital.',
+    'Haz tu mejor jugada. La IA hará una mejor.',
+    'Un juego de mesa sin mesa y sin amigos.',
+    'Fichas, árboles y decepciones.',
+    'Para cuando el ajedrez se te daba demasiado bien.',
+    'La extinción empezó contigo.',
+    'Modo Extremo: para masoquistas con estilo.',
+    'El conejito te mira. Sabe lo que hiciste.',
+    'La IA lleva ganando desde que la encendiste.',
+    'No es suerte. Es que juegas mal.',
+    'El oso tampoco te respeta.',
+    'Cada ficha mal puesta es una decisión de vida.',
+    'Spoiler: la IA ya ganó, solo está siendo educada.',
+    'Perfectamente equilibrado. Para la IA.',
+    'Tus amigos jugarían mejor. Pero no están aquí.',
+    'La naturaleza es cruel. La IA también.',
+    'Cinco animales, un bosque, cero compasión.',
+    'Designed to frustrate. Polished to perfection.',
+    'El leopardo sabe exactamente lo que hiciste en la ronda 3.',
+    'La IA no descansa. Tú sí. Ahí está el problema.',
+    'Estrategia, táctica y autoengaño.',
+    'Cada vez que pierdes, el pato sonríe.',
+    'Tu mejor jugada tiene nombre: suerte.',
+    'La IA calcula. Tú sufres. Funciona.',
+    'Esta ronda va a ser distinta, te lo juro.',
+    'En algún universo paralelo ganaste. No en este.',
+    'El águila te juzga desde la fila 1.',
+    'Bonificación de color: para gente con fe.',
+    'La IA no te odia. Simplemente no le importas.',
+    'Hay jugadores con racha positiva. Tú no eres uno de ellos.',
+    'El bosque tiene memoria. Y tú no.',
+    'Modo fácil disponible. Para los valientes.',
+    'Otra partida, las mismas decisiones cuestionables.',
+    'La IA aprendió de tus errores. Tú aún no.',
+    'El conejo lleva más puntos que tú en la fila 4.',
+    'Empezar primero no es ventaja si eres tú.',
+    'Tu tablero parece un accidente de tráfico.',
+    'Juego de estrategia profunda. Tú ve a lo tuyo.',
+    'Extinción: porque el mundo necesita menos de algo. Quizás fichas tuyas.',
+    'Nadie te dijo que sería fácil. Bueno, el botón de "Fácil" sí.',
+    'La IA tiene una opinión muy formada sobre tu fila 5.',
+    'Aquí el azar no existe. Solo tus malas decisiones.',
+    'Récord personal: 3 derrotas seguidas. Puedes superarlo.',
+    'El bosque no discrimina. Pierde todo el mundo por igual.',
+    'Optimista incorregible. Eso te honra y te hunde.',
+    'Si fallas, siempre puedes culpar al algoritmo.',
+    'Nueva partida. Misma esperanza. Distinto resultado.',
+  ];
+
+  private static pick<T>(arr: T[]): T {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
   render(): void {
     const theme = getTheme();
+    const title = StartScreen.pick(StartScreen.TITLES);
+    const subtitle = StartScreen.pick(StartScreen.SUBTITLES);
     this.el.innerHTML = `
       <div class="start-screen">
         <div class="start-screen__topbar">
@@ -91,8 +154,8 @@ export class StartScreen {
         <div class="start-screen__hero">
           <div class="start-logo">
             <span class="start-logo__forest">🌲</span>
-            <h1 class="start-logo__title">Coco Lomo</h1>
-            <p class="start-logo__subtitle">El bosque de las fichas</p>
+            <h1 class="start-logo__title">${title}</h1>
+            <p class="start-logo__subtitle">${subtitle}</p>
           </div>
         </div>
 
@@ -136,29 +199,31 @@ export class StartScreen {
           <section class="config-section">
             <h2 class="config-section__title">Expansiones</h2>
 
-            <label class="expansion-toggle" id="exp-extinction-label">
-              <div class="expansion-toggle__info">
-                <span class="expansion-toggle__name">🌿 Extinción</span>
-                <span class="expansion-toggle__desc">
-                  Un animal o color aleatorio. Al final, quien tenga <em>menos</em> de ese tipo: +7 pts.
-                </span>
-              </div>
-              <div class="switch switch--active" role="switch" aria-checked="true" aria-labelledby="exp-extinction-label" tabindex="0" id="switch-extinction">
-                <div class="switch__thumb"></div>
-              </div>
-            </label>
+            <div class="expansions-grid">
+              <label class="expansion-toggle" id="exp-extinction-label">
+                <div class="expansion-toggle__info">
+                  <span class="expansion-toggle__name">🌿 Extinción</span>
+                  <span class="expansion-toggle__desc">
+                    Animal/color aleatorio. Menos fichas de ese tipo al final: +7 pts.
+                  </span>
+                </div>
+                <div class="switch switch--active" role="switch" aria-checked="true" aria-labelledby="exp-extinction-label" tabindex="0" id="switch-extinction">
+                  <div class="switch__thumb"></div>
+                </div>
+              </label>
 
-            <label class="expansion-toggle" id="exp-acrobatic-label">
-              <div class="expansion-toggle__info">
-                <span class="expansion-toggle__name">🎪 Acrobacia</span>
-                <span class="expansion-toggle__desc">
-                  Un animal aleatorio. Si está en última casilla de Fila 1 al final: +5 pts.
-                </span>
-              </div>
-              <div class="switch switch--active" role="switch" aria-checked="true" aria-labelledby="exp-acrobatic-label" tabindex="0" id="switch-acrobatic">
-                <div class="switch__thumb"></div>
-              </div>
-            </label>
+              <label class="expansion-toggle" id="exp-acrobatic-label">
+                <div class="expansion-toggle__info">
+                  <span class="expansion-toggle__name">🎪 Acrobacia</span>
+                  <span class="expansion-toggle__desc">
+                    Animal aleatorio en última casilla de Fila 1 al final: +5 pts.
+                  </span>
+                </div>
+                <div class="switch switch--active" role="switch" aria-checked="true" aria-labelledby="exp-acrobatic-label" tabindex="0" id="switch-acrobatic">
+                  <div class="switch__thumb"></div>
+                </div>
+              </label>
+            </div>
           </section>
 
           <div class="start-screen__actions">
@@ -207,22 +272,22 @@ export class StartScreen {
     const switchExt = this.el.querySelector<HTMLElement>('#switch-extinction');
     const switchAcro = this.el.querySelector<HTMLElement>('#switch-acrobatic');
 
-    const bindSwitch = (el: HTMLElement | null, onChange: (val: boolean) => void): void => {
-      if (!el) return;
+    const bindSwitch = (switchEl: HTMLElement | null, wrapperId: string, onChange: (val: boolean) => void): void => {
+      if (!switchEl) return;
       const toggle = (): void => {
-        const active = el.getAttribute('aria-checked') === 'true';
-        el.setAttribute('aria-checked', String(!active));
-        el.classList.toggle('switch--active', !active);
+        const active = switchEl.getAttribute('aria-checked') === 'true';
+        switchEl.setAttribute('aria-checked', String(!active));
+        switchEl.classList.toggle('switch--active', !active);
         onChange(!active);
       };
-      el.addEventListener('click', toggle);
-      el.addEventListener('keydown', e => {
+      this.el.querySelector(`#${wrapperId}`)?.addEventListener('click', toggle);
+      switchEl.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
       });
     };
 
-    bindSwitch(switchExt, val => { this.extinctionEnabled = val; });
-    bindSwitch(switchAcro, val => { this.acrobaticEnabled = val; });
+    bindSwitch(switchExt, 'exp-extinction-label', val => { this.extinctionEnabled = val; });
+    bindSwitch(switchAcro, 'exp-acrobatic-label', val => { this.acrobaticEnabled = val; });
 
     // Tile theme picker (topbar)
     const tileThemeBtn = this.el.querySelector<HTMLButtonElement>('#btn-tile-theme-start');

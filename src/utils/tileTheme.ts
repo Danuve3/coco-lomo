@@ -28,9 +28,9 @@ export const TILE_THEMES: TileThemeDefinition[] = [
       DUCK: 'duck',
     },
     colorFileNames: {
-      TERRACOTTA: 'brown',
-      SAGE: 'green',
-      INK: 'blue',
+      RED: 'brown',
+      GREEN: 'green',
+      BLUE: 'blue',
     },
   },
 ];
