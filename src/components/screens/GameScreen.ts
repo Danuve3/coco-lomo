@@ -34,8 +34,10 @@ export class GameScreen {
     this.buildLayout();
     this.unsubscribe = this.store.subscribe(state => this.update(state));
     this.update(this.store.state);
-    // Si la IA arranca primero, lanzar su turno tras el primer render
-    this.store.start();
+    // Esperar a que desaparezca el anuncio antes de arrancar la partida
+    this.showTurnAnnouncement(this.store.state.humanPlaysFirst).then(() => {
+      this.store.start();
+    });
   }
 
   unmount(): void {
@@ -113,7 +115,7 @@ export class GameScreen {
 
     this.scorePanel = new ScorePanel(scorePanelEl);
 
-    forestEl.addEventListener('forest:confirm', () => this.store.confirmSelection());
+    forestEl.addEventListener('forest:confirm', () => this.collectWithAnimation(forestEl));
     forestEl.addEventListener('forest:cancel', () => this.store.cancelSelection());
 
     this.el.querySelector('#btn-rules-ingame')?.addEventListener('click', () => this.onRules());
@@ -168,6 +170,93 @@ export class GameScreen {
     this.playerBoard.render(state);
     this.aiBoard.render(state);
     this.scorePanel.render(state);
+  }
+
+  private collectWithAnimation(forestEl: HTMLElement): void {
+    const DURATION = 380;
+    const STAGGER = 60;
+
+    // 1. Capturar antes del re-render
+    const selectedEls = Array.from(forestEl.querySelectorAll<HTMLElement>('.tile--selected'));
+    const sourceData = selectedEls.map(el => ({
+      rect: el.getBoundingClientRect(),
+      html: el.outerHTML,
+    }));
+
+    // 2. Actualizar estado (re-render síncrono)
+    this.store.confirmSelection();
+
+    if (sourceData.length === 0) return;
+
+    // 3. Obtener targets y mostrar placeholders mientras vuelan los clones
+    const targetEls = Array.from(
+      this.el.querySelectorAll<HTMLElement>('#player-board-container .pending-tile'),
+    );
+    targetEls.forEach(el => el.classList.add('pending-tile--arriving'));
+
+    // 4. Animar un clon por ficha con escalonado
+    sourceData.forEach(({ rect: src, html }, i) => {
+      const targetEl = targetEls[i];
+      if (!targetEl) return;
+      const dst = targetEl.getBoundingClientRect();
+
+      const dx = dst.left - src.left;
+      const dy = dst.top - src.top;
+      const sx = dst.width / src.width;
+      const sy = dst.height / src.height;
+
+      // Revelar ficha real cuando el clon aterriza
+      setTimeout(() => {
+        targetEl.classList.remove('pending-tile--arriving');
+        targetEl.classList.add('pending-tile--landing');
+        setTimeout(() => targetEl.classList.remove('pending-tile--landing'), 300);
+      }, i * STAGGER + DURATION);
+
+      setTimeout(() => {
+        const fly = document.createElement('div');
+        fly.style.cssText = `position:fixed;left:${src.left}px;top:${src.top}px;`
+          + `width:${src.width}px;height:${src.height}px;`
+          + `z-index:500;pointer-events:none;transform-origin:top left;`;
+        fly.innerHTML = html;
+
+        const inner = fly.firstElementChild as HTMLElement | null;
+        if (inner) {
+          inner.classList.remove('tile--selected', 'tile--zone-dimmed');
+          inner.style.width = '100%';
+          inner.style.height = '100%';
+          inner.style.margin = '0';
+        }
+
+        document.body.appendChild(fly);
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          fly.style.transition = `transform ${DURATION}ms cubic-bezier(0.4,0,0.2,1),`
+            + ` opacity 160ms ease ${DURATION - 80}ms`;
+          fly.style.transform = `translate(${dx}px,${dy}px) scale(${sx},${sy})`;
+          fly.style.opacity = '0';
+          setTimeout(() => fly.remove(), DURATION + 200);
+        }));
+      }, i * STAGGER);
+    });
+  }
+
+  private showTurnAnnouncement(humanFirst: boolean): Promise<void> {
+    const text = humanFirst ? '¡Empiezas tú!' : 'Empieza la IA';
+    const icon = humanFirst ? '🧑' : '🤖';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'turn-announcement';
+    overlay.innerHTML = `
+      <div class="turn-announcement__pill">
+        <span class="turn-announcement__icon">${icon}</span>
+        <span class="turn-announcement__text">${text}</span>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    return new Promise(resolve => {
+      setTimeout(() => { overlay.remove(); resolve(); }, 2700);
+    });
   }
 
   private showEndBanner(state: GameState): void {

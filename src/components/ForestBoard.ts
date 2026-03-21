@@ -1,6 +1,5 @@
 import type { GameState, Zone, Tile } from '../engine/types';
 import { tileHTML, colorName, animalName } from '../theme/index';
-import { animateForestShuffle } from '../utils/animations';
 
 /**
  * Tablero del bosque: 4 grupos en anillo 2×2.
@@ -14,7 +13,8 @@ import { animateForestShuffle } from '../utils/animations';
 export class ForestBoard {
   private el: HTMLElement;
   private onSelectTile: (zone: number, tile: Tile) => void;
-  private prevPhase: GameState['phase'] | null = null;
+  /** IDs de fichas ya renderizadas — para detectar fichas nuevas y animarlas */
+  private renderedTileIds: Set<string> | null = null;
 
   constructor(container: HTMLElement, onSelectTile: (zone: number, tile: Tile) => void) {
     this.el = container;
@@ -28,18 +28,25 @@ export class ForestBoard {
 
     const previewIds = new Set(previewTiles.map(t => t.id));
 
-    const phaseChanged = this.prevPhase !== state.phase;
-    this.prevPhase = state.phase;
+    // Detectar fichas nuevas (null en el primer render → no animar nada)
+    const currentTileIds = new Set<string>();
+    for (const zone of state.forestZones) {
+      for (const tile of zone.tiles) currentTileIds.add(tile.id);
+    }
+    const newTileIds = this.renderedTileIds !== null
+      ? new Set([...currentTileIds].filter(id => !this.renderedTileIds!.has(id)))
+      : new Set<string>();
+    this.renderedTileIds = currentTileIds;
 
     this.el.innerHTML = `
-      <div class="forest-board" id="forest-board-inner" aria-label="Tablero del bosque">
+      <div class="forest-board" aria-label="Tablero del bosque">
         <div class="forest-title">
           <span class="forest-title__icon">🌲</span>
           <span>Bosque</span>
         </div>
         <div class="forest-zones forest-zones--grid">
           ${state.forestZones.map(z =>
-            this.zoneHTML(z, selectedZone, selectedTile, previewIds, isPlayerSelect, isAiTurn)
+            this.zoneHTML(z, selectedZone, selectedTile, previewIds, newTileIds, isPlayerSelect, isAiTurn)
           ).join('')}
         </div>
         ${isPlayerSelect && selectedTile !== null && selectedZone !== null
@@ -49,11 +56,6 @@ export class ForestBoard {
     `;
 
     this.attachListeners(state);
-
-    if (phaseChanged) {
-      const inner = this.el.querySelector<HTMLElement>('#forest-board-inner');
-      if (inner) animateForestShuffle(inner);
-    }
   }
 
   private zoneHTML(
@@ -61,6 +63,7 @@ export class ForestBoard {
     selectedZone: number | null,
     selectedTile: Tile | null,
     previewIds: Set<string>,
+    newTileIds: Set<string>,
     interactive: boolean,
     isAiTurn: boolean,
   ): string {
@@ -88,6 +91,7 @@ export class ForestBoard {
       let extraClass = '';
       if (isHighlighted || (isAiTurn && isHighlighted)) extraClass = 'tile--selected';
       else if (isDimmedTile) extraClass = 'tile--zone-dimmed';
+      if (newTileIds.has(tile.id)) extraClass += (extraClass ? ' ' : '') + 'tile--entering';
 
       if (interactive) {
         cells.push(`<button

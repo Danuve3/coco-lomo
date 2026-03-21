@@ -105,6 +105,25 @@ export function collectColorFromZone(zones: Zone[], zoneId: number, color: TileC
   return [newZones, collected];
 }
 
+/**
+ * Repone exactamente UN hueco en la primera zona que lo necesite.
+ * Útil para animaciones de reposición secuencial ficha a ficha.
+ * Devuelve la misma referencia de `zones` si no había nada que rellenar.
+ */
+export function replenishOneSlot(zones: Zone[], pile: Tile[]): { zones: Zone[]; pile: Tile[] } {
+  if (pile.length === 0) return { zones, pile };
+  for (let i = 0; i < zones.length; i++) {
+    if (zones[i].tiles.length < TILES_PER_ZONE) {
+      const [tile, ...newPile] = pile;
+      const newZones = zones.map((z, j) =>
+        j === i ? { ...z, tiles: [...z.tiles, tile] } : z,
+      );
+      return { zones: newZones, pile: newPile };
+    }
+  }
+  return { zones, pile };
+}
+
 /** ¿Queda alguna ficha en el bosque? */
 export function isForestEmpty(zones: Zone[]): boolean {
   return zones.every(z => z.tiles.length === 0);

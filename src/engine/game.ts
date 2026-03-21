@@ -238,6 +238,59 @@ export function applyAiTurn(
   }
 }
 
+/**
+ * Recoge fichas de la IA y las coloca en su tablero, sin reponer el bosque.
+ * Útil para mostrar los huecos vacíos antes del rellenado secuencial.
+ */
+export function applyAiCollect(
+  state: GameState,
+  decision: { zone: number; tile: Tile; row: number },
+): GameState {
+  const collected = computeCollection(state.forestZones, decision.zone, decision.tile);
+  const ids = new Set(collected.map(t => t.id));
+  const zonesAfterCollect = removeTilesByIds(state.forestZones, ids);
+  const newAiBoard = collected.length > 0
+    ? placeTilesInRow(state.aiBoard, collected, decision.row)
+    : state.aiBoard;
+  const newAiScore = calculateBoardScore(newAiBoard, state.expansionState, false);
+  return {
+    ...state,
+    aiBoard: newAiBoard,
+    forestZones: zonesAfterCollect,
+    aiScore: newAiScore,
+    aiLastMove: { zone: decision.zone, tile: decision.tile, row: decision.row },
+    selectedTile: null,
+    selectedZone: null,
+    previewTiles: [],
+    pendingTiles: [],
+    message: 'Reponiendo el bosque...',
+  };
+}
+
+/**
+ * Determina la fase siguiente tras el turno de la IA, una vez el bosque
+ * ya ha sido repuesto. Llamar después del rellenado secuencial.
+ */
+export function resolveAiTurnPhase(state: GameState): GameState {
+  if (state.humanPlaysFirst) {
+    if (state.round >= MAX_ROUNDS) return finalizeGame({ ...state, phase: 'GAME_END' });
+    if (isForestEmpty(state.forestZones)) return finalizeGame({ ...state, phase: 'GAME_END' });
+    return {
+      ...state,
+      phase: 'PLAYER_SELECT',
+      round: state.round + 1,
+      message: `Ronda ${state.round + 1}. Elige una ficha del bosque.`,
+    };
+  } else {
+    if (isForestEmpty(state.forestZones)) return finalizeGame({ ...state, phase: 'GAME_END' });
+    return {
+      ...state,
+      phase: 'PLAYER_SELECT',
+      message: 'Elige una ficha del bosque.',
+    };
+  }
+}
+
 /** ¿Queda alguna fila disponible para el jugador? */
 export function hasAvailableRow(state: GameState): boolean {
   return Array.from({ length: BOARD_ROWS }, (_, i) => i)
