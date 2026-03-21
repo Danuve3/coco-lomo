@@ -232,6 +232,14 @@ ul, ol { padding-left: 1.2em; }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Ficha que aparece en el bosque durante el rellenado secuencial */
+.tile--entering { animation: tile-enter-forest 380ms cubic-bezier(0.34,1.45,0.64,1) both; }
+
+@keyframes tile-enter-forest {
+  from { opacity: 0; transform: scale(0.55) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 /* Ficha pequeña (para el tablero de la IA) */
 .tile--sm { width: 34px; height: 34px; font-size: 1rem; border-width: 1.5px; }
 
@@ -508,15 +516,6 @@ ul, ol { padding-left: 1.2em; }
   transition: opacity var(--transition);
 }
 
-.forest-board--shuffling {
-  animation: forest-shuffle 700ms ease;
-}
-
-@keyframes forest-shuffle {
-  0% { opacity: 1; }
-  35% { opacity: 0.4; transform: scale(0.98); }
-  100% { opacity: 1; transform: scale(1); }
-}
 
 .forest-title {
   display: flex;
@@ -755,6 +754,24 @@ ul, ol { padding-left: 1.2em; }
   transition: border-color 0.15s, transform 0.15s;
 }
 .pending-tile:hover { transform: scale(1.08); }
+/* Placeholder mientras la ficha vuela desde el bosque */
+.pending-tile--arriving {
+  border-color: var(--border-2);
+  border-style: dashed;
+}
+.pending-tile--arriving .tile {
+  opacity: 0;
+}
+
+/* Pop-in cuando la ficha aterriza */
+.pending-tile--landing .tile {
+  animation: tile-land 240ms cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes tile-land {
+  from { opacity: 0; transform: scale(0.65); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
 .pending-tile--selected {
   border-color: var(--accent);
   border-radius: 10px;
@@ -864,6 +881,45 @@ ul, ol { padding-left: 1.2em; }
 .score-table tr:nth-child(odd) td { background: rgba(255,255,255,0.02); }
 .score-total td { color: var(--accent); font-weight: 700; border-top: 1px solid var(--border); padding-top: 0.3rem; }
 .pts-positive { color: var(--green) !important; }
+
+/* ─── Anuncio de turno inicial ──────────────────────────────────────────────── */
+.turn-announcement {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: turn-announce 2.7s ease forwards;
+}
+
+.turn-announcement__pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-1);
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.turn-announcement__icon { font-size: 1.5rem; line-height: 1; }
+
+.turn-announcement__text {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-0);
+  letter-spacing: 0.01em;
+}
+
+@keyframes turn-announce {
+  0%   { opacity: 0; transform: scale(0.88) translateY(-10px); }
+  12%  { opacity: 1; transform: scale(1) translateY(0); }
+  78%  { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.95) translateY(6px); }
+}
 
 /* Expansion banners */
 .expansion-banner {

@@ -7,18 +7,21 @@ import {
   selectPendingTile,
   placeTile,
   undoPlacement,
-  confirmPlacement,
-  applyAiTurn,
+  confirmPlacement as engineConfirmPlacement,
+  applyAiCollect,
+  resolveAiTurnPhase,
   finalizeGame,
 } from '../engine/game';
 import { evaluateAi } from '../engine/ai';
-import { isForestEmpty, computeCollection } from '../engine/forest';
+import { isForestEmpty, computeCollection, replenishOneSlot } from '../engine/forest';
 import { saveGame, clearGame } from '../utils/gamePersistence';
 
 type Listener = (state: GameState) => void;
 
-const AI_SELECT_DELAY = 700;
-const AI_PLACE_DELAY = 900;
+const AI_SELECT_DELAY = 1400;
+const REPLENISH_SLOT_DELAY = 280;     // ms entre fichas (turno jugador)
+const REPLENISH_SLOT_DELAY_AI = 560;  // ms entre fichas (turno IA)
+const PRE_AI_DELAY = 500;             // pausa tras rellenado antes del turno IA
 
 export class GameStore {
   private _state: GameState;
@@ -90,13 +93,38 @@ export class GameStore {
     this.setState(undoPlacement(this._state));
   }
 
-  confirmPlacement(): void {
+  async confirmPlacement(): Promise<void> {
     if (this._state.phase !== 'PLAYER_CONFIRM') return;
-    const next = confirmPlacement(this._state);
-    this.setState(next);
-    if (next.phase === 'AI_TURN') {
-      void this.runAiTurn();
+
+    // Si la partida termina en este momento (ej. última ronda con IA primero),
+    // aplicar el estado final directamente sin animación de relleno.
+    const finalState = engineConfirmPlacement(this._state);
+    if (finalState.phase === 'GAME_END') {
+      this.setState(finalState);
+      return;
     }
+
+    // Mostrar estado intermedio: huecos vacíos en el bosque, fase AI_TURN
+    this.setState({
+      ...this._state,
+      placementSnapshot: null,
+      phase: 'AI_TURN',
+      round: finalState.round,
+      message: 'Reponiendo el bosque...',
+    });
+
+    // Rellenar el bosque una ficha a la vez
+    while (true) {
+      const { forestZones, tilePile } = this._state;
+      const result = replenishOneSlot(forestZones, tilePile);
+      if (result.zones === forestZones) break; // sin más huecos ni fichas
+      this.setState({ ...this._state, forestZones: result.zones, tilePile: result.pile });
+      await delay(REPLENISH_SLOT_DELAY);
+    }
+
+    // Pausa antes de que la IA empiece
+    await delay(PRE_AI_DELAY);
+    void this.runAiTurn();
   }
 
   newGame(config: GameConfig): void {
@@ -107,7 +135,6 @@ export class GameStore {
   // ─── Turno IA (asíncrono, con animaciones) ────────────────────────────────
 
   async runAiTurn(): Promise<void> {
-    // Si el bosque está vacío, fin de partida
     if (isForestEmpty(this._state.forestZones)) {
       this.setState(finalizeGame({ ...this._state, phase: 'GAME_END' }));
       return;
@@ -116,7 +143,6 @@ export class GameStore {
     const decision = evaluateAi(this._state);
 
     if (!decision) {
-      // No hay jugada posible (bosque vacío o tablero IA lleno)
       this.setState(finalizeGame({ ...this._state, phase: 'GAME_END' }));
       return;
     }
@@ -135,15 +161,20 @@ export class GameStore {
 
     await delay(AI_SELECT_DELAY);
 
-    // 2. Aplicar el turno y transicionar
-    const afterAi = applyAiTurn(this._state, decision);
-    this.setState(afterAi);
+    // 2. Aplicar recogida sin reponer (muestra huecos vacíos + ficha en tablero IA)
+    this.setState(applyAiCollect(this._state, decision));
 
-    if (afterAi.phase === 'AI_TURN') {
-      // Caso edge: sigue siendo AI_TURN (no debería pasar en flujo normal)
-      await delay(AI_PLACE_DELAY);
-      this.setState({ ...afterAi, phase: 'PLAYER_SELECT' });
+    // 3. Rellenar el bosque una ficha a la vez
+    while (true) {
+      const { forestZones, tilePile } = this._state;
+      const result = replenishOneSlot(forestZones, tilePile);
+      if (result.zones === forestZones) break;
+      this.setState({ ...this._state, forestZones: result.zones, tilePile: result.pile });
+      await delay(REPLENISH_SLOT_DELAY_AI);
     }
+
+    // 4. Determinar fase siguiente y transicionar
+    this.setState(resolveAiTurnPhase(this._state));
   }
 }
 
