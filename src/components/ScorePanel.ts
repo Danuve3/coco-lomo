@@ -1,46 +1,88 @@
 import type { GameState, BoardScore } from '../engine/types';
-import { animalName, colorName } from '../theme/index';
+import { animalIcon, animalName, tileBg, colorName } from '../theme/index';
 import { countExtinctionTiles } from '../engine/scoring';
+import { EXTINCTION_BONUS, ACROBATIC_BONUS } from '../engine/constants';
 
 export class ScorePanel {
   private el: HTMLElement;
+  private elBottom: HTMLElement | null;
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, bottomContainer: HTMLElement | null = null) {
     this.el = container;
+    this.elBottom = bottomContainer;
   }
 
   render(state: GameState): void {
+    const phaseLabel =
+      state.phase === 'PLAYER_SELECT' ? '🧑'
+      : state.phase === 'PLAYER_PLACE' ? '🧑'
+      : state.phase === 'AI_TURN' ? '🤖'
+      : '🏁';
+
     this.el.innerHTML = `
-      <div class="score-panel">
-        ${this.roundInfo(state)}
-        ${this.expansionBanners(state)}
-        ${this.scoreBreakdown('Tu puntuación', state.playerScore)}
-        ${state.expansionConfig.extinction || state.expansionConfig.acrobatic
-          ? this.expansionProgress(state)
-          : ''}
+      <div class="score-panel__round">
+        <div class="score-panel__round-left">
+          <div class="round-badge">Ronda ${state.round} / 6</div>
+          <div class="phase-badge">${phaseLabel}</div>
+        </div>
+        <div class="score-panel__round-right">
+          ${this.extinctionChip(state)}
+          ${this.acrobaticChip(state)}
+        </div>
+      </div>
+    `;
+
+    if (this.elBottom) {
+      this.elBottom.innerHTML = `
+        <div class="score-panel-bottom">
+          ${this.scoreBreakdown('Tu puntuación', state.playerScore)}
+          ${state.expansionConfig.extinction ? this.expansionProgress(state) : ''}
+        </div>
+      `;
+    }
+  }
+
+  private extinctionChip(state: GameState): string {
+    if (!state.expansionConfig.extinction || !state.expansionState.extinctionTarget) return '';
+    const t = state.expansionState.extinctionTarget;
+    const playerCount = countExtinctionTiles(state.playerBoard, state.expansionState);
+    const aiCount = countExtinctionTiles(state.aiBoard, state.expansionState);
+
+    let targetIcon: string;
+    if (t.kind === 'color') {
+      const bg = tileBg(t.value);
+      targetIcon = `<span class="chip-color-swatch" style="background-color:${bg};"></span>`;
+    } else {
+      targetIcon = `<s class="chip-icon">${animalIcon(t.value)}</s>`;
+    }
+
+    const winning = playerCount < aiCount;
+    const losing = playerCount > aiCount;
+    const statusClass = winning ? 'chip-status--winning' : losing ? 'chip-status--losing' : '';
+    const label = t.kind === 'color' ? colorName(t.value) : animalName(t.value);
+
+    return `
+      <div class="expansion-chip expansion-chip--ext" title="Extinción: menos ${label} → +${EXTINCTION_BONUS} pts">
+        ${targetIcon}
+        <span class="expansion-chip__label">${label}</span>
+        <span class="expansion-chip__counts ${statusClass}">${playerCount}–${aiCount}</span>
       </div>
     `;
   }
 
-  private roundInfo(state: GameState): string {
-    const phaseLabel =
-      state.phase === 'PLAYER_SELECT' ? '🧑 Tu turno'
-      : state.phase === 'PLAYER_PLACE' ? '🧑 Elige fila'
-      : state.phase === 'AI_TURN' ? '🤖 Turno IA'
-      : '🏁 Fin';
-
+  private acrobaticChip(state: GameState): string {
+    if (!state.expansionConfig.acrobatic || !state.expansionState.acrobaticTarget) return '';
+    const a = state.expansionState.acrobaticTarget;
     return `
-      <div class="score-panel__round">
-        <div class="round-badge">Ronda ${state.round} / 6</div>
-        <div class="phase-badge">${phaseLabel}</div>
+      <div class="expansion-chip expansion-chip--acr" title="Acrobacia: ${animalName(a)} en F1, col. 5 → +${ACROBATIC_BONUS} pts">
+        <span class="chip-icon">${animalIcon(a)}</span>
+        <span class="expansion-chip__label">${animalName(a)}</span>
       </div>
-      <div class="score-panel__message">${state.message}</div>
     `;
   }
 
   private scoreBreakdown(title: string, score: BoardScore): string {
     const { breakdown } = score;
-
     return `
       <div class="score-breakdown">
         <div class="score-breakdown__title">${title}</div>
@@ -62,39 +104,10 @@ export class ScorePanel {
     `;
   }
 
-  private expansionBanners(state: GameState): string {
-    const banners: string[] = [];
-
-    if (state.expansionConfig.extinction && state.expansionState.extinctionTarget) {
-      const t = state.expansionState.extinctionTarget;
-      const label = t.kind === 'animal' ? `${animalName(t.value)} 🐾` : `Color ${colorName(t.value)}`;
-      banners.push(`
-        <div class="expansion-banner expansion-banner--extinction">
-          <span class="expansion-banner__tag">Extinción</span>
-          <span>Menos <strong>${label}</strong> → +7 pts</span>
-        </div>
-      `);
-    }
-
-    if (state.expansionConfig.acrobatic && state.expansionState.acrobaticTarget) {
-      const a = state.expansionState.acrobaticTarget;
-      banners.push(`
-        <div class="expansion-banner expansion-banner--acrobatic">
-          <span class="expansion-banner__tag">Acrobacia</span>
-          <span><strong>${animalName(a)}</strong> en F1, col. 5 → +5 pts</span>
-        </div>
-      `);
-    }
-
-    return banners.join('');
-  }
-
   private expansionProgress(state: GameState): string {
     if (!state.expansionConfig.extinction || !state.expansionState.extinctionTarget) return '';
-
     const playerCount = countExtinctionTiles(state.playerBoard, state.expansionState);
     const aiCount = countExtinctionTiles(state.aiBoard, state.expansionState);
-
     return `
       <div class="extinction-progress">
         <div class="extinction-progress__label">Fichas del objetivo:</div>

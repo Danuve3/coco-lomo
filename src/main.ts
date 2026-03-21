@@ -80,6 +80,9 @@ class App {
       savedState ? () => this.resumeGame(savedState) : null,
     );
     startScreen.render();
+
+    const rulesScreen = new RulesScreen(this.rulesEl, () => this.showScreen('start'));
+    rulesScreen.render();
   }
 
   private resumeGame(savedState: ReturnType<typeof loadGame>): void {
@@ -144,10 +147,6 @@ class App {
     this.activeGameScreen = null;
     this.renderStart();
     this.showScreen('start');
-
-    // Reglas desde inicio
-    const rulesScreen = new RulesScreen(this.rulesEl, () => this.showScreen('start'));
-    rulesScreen.render();
   }
 }
 

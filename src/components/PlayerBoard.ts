@@ -1,6 +1,9 @@
 import type { GameState, Board, Tile, AnimalType } from '../engine/types';
 import { tileHTML } from '../theme/index';
 import { availableRowSpace } from '../engine/scoring';
+import { COLOR_DEFS } from '../theme/colors';
+import { ANIMAL_DEFS } from '../theme/animals';
+import { EXTINCTION_BONUS } from '../engine/constants';
 
 
 export class PlayerBoard {
@@ -52,7 +55,7 @@ export class PlayerBoard {
     this.el.innerHTML = `
       <div class="player-board ${this.isAi ? 'player-board--ai' : ''}" aria-label="${label}">
         <div class="player-board__header">
-          <span class="player-board__title">${this.isAi ? '🤖 IA' : '🧑 Tú'}</span>
+          <span class="player-board__title">${this.isAi ? '🤖 IA' : '🧑 Tú'}${this.extinctionBadgeHTML(state)}</span>
           <span class="player-board__score">${score.subtotal + score.extinctionBonus + score.acrobaticBonus} pts</span>
         </div>
         <div class="player-board__grid-wrapper">
@@ -80,6 +83,23 @@ export class PlayerBoard {
     if (isPlacePhase || isConfirmPhase) {
       this.attachPlacementActionListeners();
     }
+  }
+
+  private extinctionBadgeHTML(state: GameState): string {
+    if (!state.expansionConfig.extinction) return '';
+    const target = state.expansionState.extinctionTarget;
+    if (!target) return '';
+
+    let indicator: string;
+    if (target.kind === 'color') {
+      const def = COLOR_DEFS[target.value];
+      indicator = `<span class="ext-color-swatch" style="background-color:${def.bg};" title="${def.name} (extinción)"></span>`;
+    } else {
+      const def = ANIMAL_DEFS[target.value];
+      indicator = `<s class="ext-animal-name">${def.icon} ${def.name}</s>`;
+    }
+
+    return ` <span class="ext-target-badge">${indicator}<span class="ext-bonus">(+${EXTINCTION_BONUS})</span></span>`;
   }
 
   private rowHTML(

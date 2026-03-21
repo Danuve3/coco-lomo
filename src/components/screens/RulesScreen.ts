@@ -20,23 +20,24 @@ export class RulesScreen {
           <section class="rules-section">
             <h2>Objetivo</h2>
             <p>Coloca fichas de animales en tu tablero personal (5×5) durante 6 rondas. Gana quien más puntos obtenga combinando animales según las reglas de puntuación.</p>
+            <p>El juego consta de <strong>120 fichas</strong> repartidas en <strong>5 animales</strong> y <strong>3 colores</strong>: 8 fichas por cada combinación animal-color, lo que da 24 fichas por animal y 40 fichas por color.</p>
           </section>
 
           <section class="rules-section">
             <h2>Estructura de la partida</h2>
             <ul>
-              <li><strong>6 rondas</strong>. En cada ronda, primero juegas tú, luego la IA.</li>
+              <li><strong>6 rondas</strong>. El jugador inicial se establece en la configuración de la partida.</li>
               <li>Cada turno: <strong>recoges fichas</strong> del bosque → <strong>las colocas</strong> en una fila.</li>
             </ul>
           </section>
 
           <section class="rules-section">
             <h2>El bosque</h2>
-            <p>El tablero del bosque tiene <strong>6 zonas</strong> en anillo con fichas de animales. Cada ficha tiene un animal y un color.</p>
+            <p>El tablero de bosque tiene <strong>4 zonas</strong> con 4 fichas de animales por zona. Cada ficha tiene un animal y un color. Las 4 zonas forman una cuadrícula de 2×2.</p>
             <ol>
               <li>Elige cualquier ficha del bosque.</li>
-              <li>Recoges <strong>TODAS las fichas del mismo color</strong> del bosque entero.</li>
-              <li>Las fichas restantes se mueven según las reglas de cada animal.</li>
+              <li>Recoges la <strong>ficha elegida</strong> + todas las fichas del <strong>mismo color</strong> que la elegida de la zona que se corresponda según el animal escogido.</li>
+              <li>Después de colocarlas en tu tablero, el bosque se repondrá con fichas aleatorias de las restantes.</li>
             </ol>
           </section>
 
@@ -61,7 +62,7 @@ export class RulesScreen {
                 <span class="animal-move-icon">🦅</span>
                 <div>
                   <strong>Águila</strong><br/>
-                  Salta <em>2 zonas en diagonal</em> (sentido horario).
+                  Se mueve <em>en diagonal</em>.
                 </div>
               </div>
               <div class="animal-move-row">
@@ -75,7 +76,7 @@ export class RulesScreen {
                 <span class="animal-move-icon">🦆</span>
                 <div>
                   <strong>Pato</strong><br/>
-                  Avanza (horario) hasta la siguiente zona que tenga <em>otro pato</em>. Si no hay más patos, permanece.
+                  Avanza (horario) hasta la siguiente zona que tenga <em>otro pato</em>. Si no hay más patos, permanece en su zona.
                 </div>
               </div>
             </div>

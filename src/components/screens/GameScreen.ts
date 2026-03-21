@@ -6,6 +6,7 @@ import { ScorePanel } from '../ScorePanel';
 import { toggleTheme, getTheme, themeIcon } from '../../utils/theme';
 import { TILE_THEMES, getTileThemeId, setTileThemeId, getAnimalImageUrl } from '../../utils/tileTheme';
 import type { TileThemeId } from '../../utils/tileTheme';
+import { MAX_ROUNDS } from '../../engine/constants';
 
 export class GameScreen {
   private el: HTMLElement;
@@ -17,6 +18,7 @@ export class GameScreen {
   private unsubscribe?: () => void;
   private onGameEnd: (state: GameState) => void;
   private onRules: () => void;
+  private _lastRoundAnnounced = 0;
 
   constructor(
     container: HTMLElement,
@@ -79,15 +81,16 @@ export class GameScreen {
           </nav>
         </header>
 
-        <div class="game-body">
-          <aside class="game-sidebar" id="score-panel-container"></aside>
+        <div class="game-info-bar" id="score-panel-container"></div>
 
+        <div class="game-body">
           <main class="game-main">
             <div id="forest-container" class="game-forest"></div>
             <div class="game-boards">
               <div id="player-board-container"></div>
               <div id="ai-board-container"></div>
             </div>
+            <div id="game-info-bottom" class="game-info-bottom"></div>
           </main>
         </div>
       </div>
@@ -97,6 +100,7 @@ export class GameScreen {
     const playerEl = this.el.querySelector<HTMLElement>('#player-board-container')!;
     const aiEl = this.el.querySelector<HTMLElement>('#ai-board-container')!;
     const scorePanelEl = this.el.querySelector<HTMLElement>('#score-panel-container')!;
+    const gameInfoBottomEl = this.el.querySelector<HTMLElement>('#game-info-bottom')!;
 
     this.forestBoard = new ForestBoard(forestEl, (zone: number, tile: Tile) => {
       this.store.selectTile(zone, tile);
@@ -113,7 +117,7 @@ export class GameScreen {
 
     this.aiBoard = new PlayerBoard(aiEl, () => {}, true);
 
-    this.scorePanel = new ScorePanel(scorePanelEl);
+    this.scorePanel = new ScorePanel(scorePanelEl, gameInfoBottomEl);
 
     forestEl.addEventListener('forest:confirm', () => this.collectWithAnimation(forestEl));
     forestEl.addEventListener('forest:cancel', () => this.store.cancelSelection());
@@ -164,6 +168,15 @@ export class GameScreen {
       this.scorePanel.render(state);
       this.showEndBanner(state);
       return;
+    }
+
+    if (
+      state.round === MAX_ROUNDS &&
+      this._lastRoundAnnounced < MAX_ROUNDS &&
+      (state.phase === 'PLAYER_SELECT' || state.phase === 'AI_TURN')
+    ) {
+      this._lastRoundAnnounced = MAX_ROUNDS;
+      this.showLastRoundAnnouncement();
     }
 
     this.forestBoard.render(state);
@@ -238,6 +251,19 @@ export class GameScreen {
         }));
       }, i * STAGGER);
     });
+  }
+
+  private showLastRoundAnnouncement(): void {
+    const overlay = document.createElement('div');
+    overlay.className = 'turn-announcement';
+    overlay.innerHTML = `
+      <div class="turn-announcement__pill">
+        <span class="turn-announcement__icon">⚡</span>
+        <span class="turn-announcement__text">¡Última ronda!</span>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 2700);
   }
 
   private showTurnAnnouncement(humanFirst: boolean): Promise<void> {
