@@ -7,6 +7,7 @@ import { toggleTheme, getTheme, themeIcon } from '../../utils/theme';
 import { TILE_THEMES, getTileThemeId, setTileThemeId, getAnimalImageUrl } from '../../utils/tileTheme';
 import type { TileThemeId } from '../../utils/tileTheme';
 import { MAX_ROUNDS } from '../../engine/constants';
+import { audioManager } from '../../utils/audio';
 
 export class GameScreen {
   private el: HTMLElement;
@@ -76,6 +77,7 @@ export class GameScreen {
                 ${this.tileThemeDropdownHTML()}
               </div>
             </div>
+            <button class="theme-toggle theme-toggle--sm" id="btn-music-game" title="Música" aria-label="Activar/desactivar música">${audioManager.muteIcon()}</button>
             <button class="theme-toggle theme-toggle--sm" id="btn-theme-game" title="Cambiar tema" aria-label="Cambiar tema">${themeIcon(getTheme())}</button>
             <button class="btn btn--ghost btn--xs" id="btn-rules-ingame" title="Ver reglas">?</button>
           </nav>
@@ -97,12 +99,14 @@ export class GameScreen {
     `;
 
     const forestEl = this.el.querySelector<HTMLElement>('#forest-container')!;
+    forestEl.style.backgroundImage = `url('${import.meta.env.BASE_URL}bg-images/forest-bg.webp')`;
     const playerEl = this.el.querySelector<HTMLElement>('#player-board-container')!;
     const aiEl = this.el.querySelector<HTMLElement>('#ai-board-container')!;
     const scorePanelEl = this.el.querySelector<HTMLElement>('#score-panel-container')!;
     const gameInfoBottomEl = this.el.querySelector<HTMLElement>('#game-info-bottom')!;
 
     this.forestBoard = new ForestBoard(forestEl, (zone: number, tile: Tile) => {
+      audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/pick.mp3`);
       this.store.selectTile(zone, tile);
     });
 
@@ -123,6 +127,12 @@ export class GameScreen {
     forestEl.addEventListener('forest:cancel', () => this.store.cancelSelection());
 
     this.el.querySelector('#btn-rules-ingame')?.addEventListener('click', () => this.onRules());
+
+    const musicBtn = this.el.querySelector<HTMLButtonElement>('#btn-music-game');
+    musicBtn?.addEventListener('click', () => {
+      audioManager.toggleMute();
+      if (musicBtn) musicBtn.textContent = audioManager.muteIcon();
+    });
 
     const themeBtn = this.el.querySelector<HTMLButtonElement>('#btn-theme-game');
     themeBtn?.addEventListener('click', () => {

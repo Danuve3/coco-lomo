@@ -15,6 +15,7 @@ import {
 import { evaluateAi } from '../engine/ai';
 import { isForestEmpty, computeCollection, replenishOneSlot } from '../engine/forest';
 import { saveGame, clearGame } from '../utils/gamePersistence';
+import { audioManager } from '../utils/audio';
 
 type Listener = (state: GameState) => void;
 
@@ -44,6 +45,7 @@ export class GameStore {
     this._state = newState;
     if (newState.phase === 'GAME_END') {
       clearGame();
+      audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/finish.mp3`);
     } else {
       saveGame(newState);
     }
@@ -69,6 +71,7 @@ export class GameStore {
 
   confirmSelection(): void {
     if (this._state.phase !== 'PLAYER_SELECT') return;
+    audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/confirm-pickup.mp3`);
     this.setState(confirmSelection(this._state));
   }
 
@@ -85,6 +88,7 @@ export class GameStore {
   placeTile(row: number): void {
     if (this._state.phase !== 'PLAYER_PLACE') return;
     this.setState(placeTile(this._state, row));
+    audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/place-tile.mp3`);
     // La fase avanza a PLAYER_CONFIRM, no AI_TURN directamente
   }
 
@@ -119,6 +123,7 @@ export class GameStore {
       const result = replenishOneSlot(forestZones, tilePile);
       if (result.zones === forestZones) break; // sin más huecos ni fichas
       this.setState({ ...this._state, forestZones: result.zones, tilePile: result.pile });
+      audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/replenish.mp3`);
       await delay(REPLENISH_SLOT_DELAY);
     }
 
@@ -135,6 +140,8 @@ export class GameStore {
   // ─── Turno IA (asíncrono, con animaciones) ────────────────────────────────
 
   async runAiTurn(): Promise<void> {
+    audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/turn-change.mp3`);
+
     if (isForestEmpty(this._state.forestZones)) {
       this.setState(finalizeGame({ ...this._state, phase: 'GAME_END' }));
       return;
@@ -149,6 +156,7 @@ export class GameStore {
 
     // 1. Mostrar zona y ficha elegidas por la IA
     const previewTiles = computeCollection(this._state.forestZones, decision.zone, decision.tile);
+    audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/pick.mp3`);
     this.setState({
       ...this._state,
       phase: 'AI_TURN',
@@ -170,11 +178,16 @@ export class GameStore {
       const result = replenishOneSlot(forestZones, tilePile);
       if (result.zones === forestZones) break;
       this.setState({ ...this._state, forestZones: result.zones, tilePile: result.pile });
+      audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/replenish.mp3`);
       await delay(REPLENISH_SLOT_DELAY_AI);
     }
 
     // 4. Determinar fase siguiente y transicionar
-    this.setState(resolveAiTurnPhase(this._state));
+    const nextState = resolveAiTurnPhase(this._state);
+    if (nextState.phase === 'PLAYER_SELECT') {
+      audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/turn-change.mp3`);
+    }
+    this.setState(nextState);
   }
 }
 

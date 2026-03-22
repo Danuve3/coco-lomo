@@ -45,6 +45,24 @@ export function setTileThemeId(id: TileThemeId): void {
   localStorage.setItem(STORAGE_KEY, id);
 }
 
+export function preloadTileImages(themeId: TileThemeId): void {
+  const theme = TILE_THEMES.find(t => t.id === themeId);
+  if (!theme?.hasImages) return;
+
+  const animals: AnimalType[] = ['RABBIT', 'LEOPARD', 'EAGLE', 'BEAR', 'DUCK'];
+  const colors: TileColor[] = ['RED', 'GREEN', 'BLUE'];
+
+  for (const animal of animals) {
+    for (const color of colors) {
+      const url = getAnimalImageUrl(themeId, animal, color);
+      if (url) {
+        const img = new Image();
+        img.src = url;
+      }
+    }
+  }
+}
+
 export function getAnimalImageUrl(themeId: TileThemeId, animal: AnimalType, color: TileColor): string | null {
   const theme = TILE_THEMES.find(t => t.id === themeId);
   if (!theme?.hasImages || !theme.imageBasePath) return null;

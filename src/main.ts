@@ -8,10 +8,13 @@ import { StatsScreen } from './components/screens/StatsScreen';
 import { initTheme } from './utils/theme';
 import { saveGameResult } from './utils/stats';
 import { loadGame, clearGame } from './utils/gamePersistence';
+import { audioManager } from './utils/audio';
+import { preloadTileImages, getTileThemeId } from './utils/tileTheme';
 
 type Screen = 'start' | 'game' | 'rules' | 'result' | 'stats';
 
 initTheme();
+preloadTileImages(getTileThemeId());
 
 class App {
   private appEl: HTMLElement;
@@ -153,3 +156,5 @@ class App {
 const appEl = document.getElementById('app');
 if (!appEl) throw new Error('No se encontró #app en el DOM.');
 new App(appEl);
+
+document.addEventListener('click', () => audioManager.start());
