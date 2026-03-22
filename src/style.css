@@ -365,6 +365,12 @@ ul, ol { padding-left: 1.2em; }
   letter-spacing: 0.05em;
   text-shadow: 0 1px 8px rgba(0,0,0,0.4);
   transition: opacity 0.35s ease;
+  line-height: 1.4;
+  height: calc(0.85rem * 1.4 * 2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 .start-logo__subtitle--out { opacity: 0; }
 
