@@ -1,4 +1,5 @@
 import './style.css';
+import { registerSW } from 'virtual:pwa-register';
 import type { GameConfig, GameState } from './engine/types';
 import { StartScreen } from './components/screens/StartScreen';
 import { GameScreen } from './components/screens/GameScreen';
@@ -158,3 +159,5 @@ if (!appEl) throw new Error('No se encontró #app en el DOM.');
 new App(appEl);
 
 document.addEventListener('click', () => audioManager.start());
+
+registerSW({ immediate: true });
