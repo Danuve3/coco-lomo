@@ -20,8 +20,7 @@ import { audioManager } from '../utils/audio';
 type Listener = (state: GameState) => void;
 
 const AI_SELECT_DELAY = 1400;
-const REPLENISH_SLOT_DELAY = 280;     // ms entre fichas (turno jugador)
-const REPLENISH_SLOT_DELAY_AI = 560;  // ms entre fichas (turno IA)
+const REPLENISH_SLOT_DELAY = 560;     // ms entre fichas (igual para jugador e IA)
 const PRE_AI_DELAY = 500;             // pausa tras rellenado antes del turno IA
 
 export class GameStore {
@@ -71,7 +70,7 @@ export class GameStore {
 
   confirmSelection(): void {
     if (this._state.phase !== 'PLAYER_SELECT') return;
-    audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/confirm-pickup.mp3`);
+    audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/confirm-pickup.mp3`, 0.6);
     this.setState(confirmSelection(this._state));
   }
 
@@ -179,7 +178,7 @@ export class GameStore {
       if (result.zones === forestZones) break;
       this.setState({ ...this._state, forestZones: result.zones, tilePile: result.pile });
       audioManager.playSfx(`${import.meta.env.BASE_URL}sounds/fx/replenish.mp3`);
-      await delay(REPLENISH_SLOT_DELAY_AI);
+      await delay(REPLENISH_SLOT_DELAY);
     }
 
     // 4. Determinar fase siguiente y transicionar

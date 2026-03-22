@@ -186,7 +186,7 @@ export function confirmPlacement(state: GameState): GameState {
  */
 export function applyAiTurn(
   state: GameState,
-  decision: { zone: number; tile: Tile; row: number },
+  decision: { zone: number; tile: Tile; row: number; rowAssignments?: number[] },
 ): GameState {
   const collected = computeCollection(state.forestZones, decision.zone, decision.tile);
   const ids = new Set(collected.map(t => t.id));
@@ -194,7 +194,7 @@ export function applyAiTurn(
   const { zones: newForest, pile: newPile } = replenishZones(zonesAfterCollect, state.tilePile);
 
   const newAiBoard = collected.length > 0
-    ? placeTilesInRow(state.aiBoard, collected, decision.row)
+    ? applyRowAssignments(state.aiBoard, collected, decision)
     : state.aiBoard;
   const newAiScore = calculateBoardScore(newAiBoard, state.expansionState, false);
 
@@ -244,13 +244,13 @@ export function applyAiTurn(
  */
 export function applyAiCollect(
   state: GameState,
-  decision: { zone: number; tile: Tile; row: number },
+  decision: { zone: number; tile: Tile; row: number; rowAssignments?: number[] },
 ): GameState {
   const collected = computeCollection(state.forestZones, decision.zone, decision.tile);
   const ids = new Set(collected.map(t => t.id));
   const zonesAfterCollect = removeTilesByIds(state.forestZones, ids);
   const newAiBoard = collected.length > 0
-    ? placeTilesInRow(state.aiBoard, collected, decision.row)
+    ? applyRowAssignments(state.aiBoard, collected, decision)
     : state.aiBoard;
   const newAiScore = calculateBoardScore(newAiBoard, state.expansionState, false);
   return {
@@ -327,6 +327,29 @@ function pickExtinctionTarget(): ExpansionState['extinctionTarget'] {
     ...COLORS.map(c => ({ kind: 'color' as const, value: c })),
   ];
   return options[Math.floor(Math.random() * options.length)];
+}
+
+/**
+ * Coloca las fichas recogidas en el tablero de la IA usando rowAssignments si existen,
+ * o bien todo en decision.row (comportamiento clásico de HARD/EASY).
+ */
+function applyRowAssignments(
+  board: Board,
+  collected: Tile[],
+  decision: { row: number; rowAssignments?: number[] },
+): Board {
+  const assignments = decision.rowAssignments;
+  if (assignments && assignments.length === collected.length) {
+    let current = board;
+    for (let i = 0; i < collected.length; i++) {
+      const row = assignments[i];
+      if (row >= 0) {
+        current = placeTilesInRow(current, [collected[i]], row);
+      }
+    }
+    return current;
+  }
+  return placeTilesInRow(board, collected, decision.row);
 }
 
 export function finalizeGame(state: GameState): GameState {

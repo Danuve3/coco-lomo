@@ -82,14 +82,14 @@ class AudioManager {
 
   private sfxCache = new Map<string, HTMLAudioElement>();
 
-  playSfx(src: string): void {
+  playSfx(src: string, volume = 1.0): void {
     if (this._muted) return;
     let sfx = this.sfxCache.get(src);
     if (!sfx) {
       sfx = new Audio(src);
-      sfx.volume = 1.0;
       this.sfxCache.set(src, sfx);
     }
+    sfx.volume = volume;
     sfx.currentTime = 0;
     sfx.play().catch(() => {});
   }

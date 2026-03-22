@@ -308,6 +308,7 @@ ul, ol { padding-left: 1.2em; }
   padding: 0.6rem 1rem;
   background: color-mix(in srgb, var(--bg-1) 70%, transparent);
   border-bottom: 1px solid var(--border);
+  z-index: 10;
 }
 
 /* Resume banner */
@@ -1145,12 +1146,43 @@ ul, ol { padding-left: 1.2em; }
 .extinction-progress__row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 .extinction-progress__hint { color: var(--text-2); margin-left: auto; }
 
+/* ─── Canvas de hojas compartido ────────────────────────────────────────────── */
+.forest-leaves-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
 /* ─── Pantalla de reglas ─────────────────────────────────────────────────────── */
 .rules-screen {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  background: var(--bg-0);
+  background-color: var(--bg-0);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+.rules-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 35%,
+    rgba(var(--bg-0-rgb), 0.60) 0%,
+    rgba(var(--bg-0-rgb), 0.82) 50%,
+    rgba(var(--bg-0-rgb), 0.96) 100%
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+
+.rules-screen > *:not(.forest-leaves-canvas) {
+  position: relative;
+  z-index: 2;
 }
 
 .rules-screen__header {
@@ -1203,7 +1235,10 @@ ul, ol { padding-left: 1.2em; }
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
-  background: var(--bg-3);
+  background: color-mix(in srgb, var(--bg-3) 72%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--r-md);
   padding: 0.6rem 0.75rem;
   font-size: 0.9rem;
@@ -1214,9 +1249,12 @@ ul, ol { padding-left: 1.2em; }
 .score-rules { display: flex; flex-direction: column; gap: 0.75rem; }
 .score-rule {
   padding: 0.75rem;
-  background: var(--bg-3);
-  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--bg-3) 72%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-left: 3px solid var(--border-2);
+  border-radius: var(--r-md);
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -1453,7 +1491,30 @@ ul, ol { padding-left: 1.2em; }
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  background: var(--bg-0);
+  background-color: var(--bg-0);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+.stats-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 35%,
+    rgba(var(--bg-0-rgb), 0.60) 0%,
+    rgba(var(--bg-0-rgb), 0.82) 50%,
+    rgba(var(--bg-0-rgb), 0.96) 100%
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+
+.stats-screen > *:not(.forest-leaves-canvas) {
+  position: relative;
+  z-index: 2;
 }
 
 .stats-header {
@@ -1512,7 +1573,7 @@ ul, ol { padding-left: 1.2em; }
 .ss-label {
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--text-3);
+  color: var(--text-2);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -1527,19 +1588,23 @@ ul, ol { padding-left: 1.2em; }
 /* ── Summary cards ── */
 .stats-summary {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.45rem;
 }
 
 .stat-card {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-2) 72%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--r-md);
   padding: 0.7rem 0.4rem;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  min-width: 0;
+  overflow: hidden;
 }
 .stat-card--total { border-color: rgba(120,120,200,0.5); background: rgba(120,120,200,0.07); }
 .stat-card--win   { border-color: rgba(92,171,125,0.5);  background: rgba(92,171,125,0.07); }
@@ -1548,7 +1613,7 @@ ul, ol { padding-left: 1.2em; }
 
 .stat-card__val {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: clamp(1.1rem, 4vw, 1.5rem);
   font-weight: 900;
   line-height: 1;
   color: var(--text-0);
@@ -1557,7 +1622,7 @@ ul, ol { padding-left: 1.2em; }
 .stat-card--win   .stat-card__val { color: var(--green); }
 .stat-card--loss  .stat-card__val { color: var(--red); }
 .stat-card--rate  .stat-card__val { color: var(--accent); }
-.stat-card__label { font-size: 0.63rem; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-card__label { font-size: 0.49rem; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Streak row ── */
 .streak-row {
@@ -1607,8 +1672,10 @@ ul, ol { padding-left: 1.2em; }
   display: flex;
   align-items: center;
   gap: 0;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-2) 72%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--r-md);
   overflow: hidden;
 }
@@ -1655,8 +1722,10 @@ ul, ol { padding-left: 1.2em; }
   gap: 0.4rem;
 }
 .stats-score-item {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-2) 72%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--r-sm);
   padding: 0.5rem 0.7rem;
   display: flex;
@@ -1671,8 +1740,10 @@ ul, ol { padding-left: 1.2em; }
 
 /* ── Sparkline ── */
 .sparkline-wrap {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-2) 72%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--r-md);
   padding: 0.6rem 0.75rem 0.5rem;
 }
@@ -1701,7 +1772,17 @@ ul, ol { padding-left: 1.2em; }
 }
 
 /* ── Breakdown por fila ── */
-.breakdown-list { display: flex; flex-direction: column; gap: 0.45rem; }
+.breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  background: color-mix(in srgb, var(--bg-2) 72%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--r-md);
+  padding: 0.65rem 0.75rem;
+}
 .breakdown-row {
   display: grid;
   grid-template-columns: 90px 1fr 28px;
@@ -1731,8 +1812,10 @@ ul, ol { padding-left: 1.2em; }
 .context-grid { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .ctx-card {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-2) 72%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--r-md);
   padding: 0.65rem 0.75rem;
   display: flex;
@@ -1778,6 +1861,14 @@ ul, ol { padding-left: 1.2em; }
 
 /* ── Fichas ── */
 .fichas-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+.fichas-sub {
+  background: color-mix(in srgb, var(--bg-2) 72%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--r-md);
+  padding: 0.65rem 0.75rem;
+}
 .fichas-sub-title {
   font-size: 0.7rem;
   font-weight: 700;
@@ -1829,9 +1920,11 @@ ul, ol { padding-left: 1.2em; }
   align-items: center;
   gap: 0.6rem;
   padding: 0.5rem 0.75rem;
-  background: var(--bg-2);
+  background: color-mix(in srgb, var(--bg-2) 72%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--r-sm);
-  border: 1px solid var(--border);
   font-size: 0.85rem;
 }
 .history-item--win  { border-left: 3px solid var(--green); }
@@ -1861,16 +1954,12 @@ ul, ol { padding-left: 1.2em; }
 
 /* ─── Banner fin de partida ──────────────────────────────────────────────────── */
 .game-end-banner {
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
   z-index: 50;
   padding: 0.75rem 1rem;
-  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  animation: banner-slide-up 0.3s ease;
+  animation: banner-slide-down 0.3s ease;
 }
 .banner--win  { background: rgba(10,15,12,0.92); border-color: rgba(92,171,125,0.5); }
 .banner--loss { background: rgba(10,15,12,0.92); border-color: rgba(224,90,90,0.4); }
@@ -1896,9 +1985,9 @@ ul, ol { padding-left: 1.2em; }
 .banner--win  .game-end-banner__title { color: var(--green); }
 .banner--loss .game-end-banner__title { color: var(--red); }
 
-@keyframes banner-slide-up {
-  from { transform: translateY(100%); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+@keyframes banner-slide-down {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
 }
 
 /* ─── Scrollbar discreta ─────────────────────────────────────────────────────── */

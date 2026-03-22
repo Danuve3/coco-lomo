@@ -8,6 +8,7 @@ import { TILE_THEMES, getTileThemeId, setTileThemeId, getAnimalImageUrl } from '
 import type { TileThemeId } from '../../utils/tileTheme';
 import { MAX_ROUNDS } from '../../engine/constants';
 import { audioManager } from '../../utils/audio';
+import { playConfetti, playRain } from '../../utils/endAnimation';
 
 export class GameScreen {
   private el: HTMLElement;
@@ -316,8 +317,13 @@ export class GameScreen {
       </div>
     `;
 
-    const gameScreen = this.el.querySelector<HTMLElement>('.game-screen');
-    gameScreen?.appendChild(banner);
+    const forestContainer = this.el.querySelector<HTMLElement>('#forest-container');
+    forestContainer?.parentElement?.insertBefore(banner, forestContainer);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (playerWins) playConfetti();
+    else if (!tie)  playRain();
 
     banner.querySelector('#btn-see-results')?.addEventListener('click', () => {
       this.onGameEnd(state);

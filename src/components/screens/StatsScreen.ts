@@ -1,6 +1,7 @@
 import { getRecords, getAggregatedStats, clearStats } from '../../utils/stats';
 import type { GameRecord, AggregatedStats } from '../../utils/stats';
 import type { AnimalType, TileColor } from '../../engine/types';
+import { setupLeavesCanvas, pickBgUrl } from '../../utils/leavesCanvas';
 
 const ANIMAL_LABEL: Record<AnimalType, string> = {
   RABBIT:  '🐰 Conejo',
@@ -25,6 +26,7 @@ const COLOR_HEX: Record<TileColor, string> = {
 export class StatsScreen {
   private el: HTMLElement;
   private onBack: () => void;
+  private cancelLeaves: (() => void) | null = null;
 
   constructor(container: HTMLElement, onBack: () => void) {
     this.el = container;
@@ -32,11 +34,15 @@ export class StatsScreen {
   }
 
   render(): void {
+    this.cancelLeaves?.();
+    this.cancelLeaves = null;
+
     const agg = getAggregatedStats();
     const records = getRecords().slice().reverse();
+    const bgUrl = pickBgUrl(import.meta.env.BASE_URL);
 
     this.el.innerHTML = `
-      <div class="stats-screen">
+      <div class="stats-screen" style="background-image: url('${bgUrl}')">
         <header class="stats-header">
           <button class="btn btn--ghost btn--sm" id="btn-stats-back">← Volver</button>
           <h1 class="stats-title">Estadísticas</h1>
@@ -48,6 +54,9 @@ export class StatsScreen {
         </div>
       </div>
     `;
+
+    const screen = this.el.querySelector<HTMLElement>('.stats-screen');
+    if (screen) this.cancelLeaves = setupLeavesCanvas(screen);
 
     this.el.querySelector('#btn-stats-back')?.addEventListener('click', () => this.onBack());
     this.el.querySelector('#btn-clear-stats')?.addEventListener('click', () => {

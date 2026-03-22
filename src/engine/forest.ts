@@ -137,8 +137,6 @@ export function isForestEmpty(zones: Zone[]): boolean {
 export function computeCollection(zones: Zone[], selectedZone: number, selectedTile: Tile): Tile[] {
   const result: Tile[] = [selectedTile];
   const destZoneId = computeDestZone(zones, selectedZone, selectedTile);
-  if (destZoneId === null) return result;
-
   const destZone = zones.find(z => z.id === destZoneId);
   if (!destZone) return result;
 
@@ -158,7 +156,7 @@ export function removeTilesByIds(zones: Zone[], ids: Set<string>): Zone[] {
   }));
 }
 
-function computeDestZone(zones: Zone[], selectedZone: number, tile: Tile): number | null {
+function computeDestZone(zones: Zone[], selectedZone: number, tile: Tile): number {
   const animal = tile.animal as AnimalType;
   switch (animal) {
     case 'RABBIT':  return ZONE_CW[selectedZone];
@@ -174,7 +172,7 @@ function computeDestZone(zones: Zone[], selectedZone: number, tile: Tile): numbe
         }
         current = ZONE_CW[current];
       }
-      return null; // sin más patos, solo se recoge la ficha seleccionada
+      return selectedZone; // sin más patos, permanece en su zona (como el oso)
     }
   }
 }

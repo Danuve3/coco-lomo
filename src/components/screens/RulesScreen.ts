@@ -1,6 +1,9 @@
+import { setupLeavesCanvas, pickBgUrl } from '../../utils/leavesCanvas';
+
 export class RulesScreen {
   private el: HTMLElement;
   private onBack: () => void;
+  private cancelLeaves: (() => void) | null = null;
 
   constructor(container: HTMLElement, onBack: () => void) {
     this.el = container;
@@ -8,8 +11,12 @@ export class RulesScreen {
   }
 
   render(): void {
+    this.cancelLeaves?.();
+    this.cancelLeaves = null;
+
+    const bgUrl = pickBgUrl(import.meta.env.BASE_URL);
     this.el.innerHTML = `
-      <div class="rules-screen">
+      <div class="rules-screen" style="background-image: url('${bgUrl}')">
         <div class="rules-screen__header">
           <button class="btn btn--ghost btn--sm" id="rules-back">← Volver</button>
           <h1 class="rules-screen__title">📖 Reglas de Coco Lomo</h1>
@@ -158,6 +165,9 @@ export class RulesScreen {
         </div>
       </div>
     `;
+
+    const screen = this.el.querySelector<HTMLElement>('.rules-screen');
+    if (screen) this.cancelLeaves = setupLeavesCanvas(screen);
 
     this.el.querySelector('#rules-back')?.addEventListener('click', () => this.onBack());
     this.el.querySelector('#rules-back-bottom')?.addEventListener('click', () => this.onBack());
