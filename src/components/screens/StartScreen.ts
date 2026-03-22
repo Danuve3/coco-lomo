@@ -10,6 +10,7 @@ export class StartScreen {
   private onStart: (config: GameConfig) => void;
   private onStats: () => void;
   private animFrameId: number | null = null;
+  private subtitleIntervalId: ReturnType<typeof setInterval> | null = null;
 
   private selectedDifficulty: Difficulty = 'EXTREME';
   private selectedFirstPlayer: FirstPlayer = 'RANDOM';
@@ -190,6 +191,10 @@ export class StartScreen {
       cancelAnimationFrame(this.animFrameId);
       this.animFrameId = null;
     }
+    if (this.subtitleIntervalId !== null) {
+      clearInterval(this.subtitleIntervalId);
+      this.subtitleIntervalId = null;
+    }
     const theme = getTheme();
     const title = StartScreen.pick(StartScreen.TITLES);
     const subtitle = StartScreen.pick(StartScreen.SUBTITLES);
@@ -303,6 +308,23 @@ export class StartScreen {
     const screen = this.el.querySelector<HTMLElement>('.start-screen');
     if (screen) this.setupLeavesCanvas(screen);
     this.attachListeners();
+    this.startSubtitleRotation();
+  }
+
+  private startSubtitleRotation(): void {
+    let current = this.el.querySelector<HTMLElement>('.start-logo__subtitle')?.textContent ?? '';
+    this.subtitleIntervalId = setInterval(() => {
+      const el = this.el.querySelector<HTMLElement>('.start-logo__subtitle');
+      if (!el) return;
+      el.classList.add('start-logo__subtitle--out');
+      setTimeout(() => {
+        let next: string;
+        do { next = StartScreen.pick(StartScreen.SUBTITLES); } while (next === current);
+        current = next;
+        el.textContent = next;
+        el.classList.remove('start-logo__subtitle--out');
+      }, 350);
+    }, 5000);
   }
 
   private setupLeavesCanvas(screen: HTMLElement): void {

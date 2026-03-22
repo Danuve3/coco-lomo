@@ -364,7 +364,9 @@ ul, ol { padding-left: 1.2em; }
   font-style: italic;
   letter-spacing: 0.05em;
   text-shadow: 0 1px 8px rgba(0,0,0,0.4);
+  transition: opacity 0.35s ease;
 }
+.start-logo__subtitle--out { opacity: 0; }
 
 .start-screen__config {
   padding: 1rem 1.5rem;
