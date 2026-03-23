@@ -290,7 +290,10 @@ export class StartScreen {
           </div>
         </div>
       </div>
-      <p class="app-version">v1.0.0</p>
+      <div class="app-footer">
+        <span>By Danuve</span>
+        <span>v1.0.0</span>
+      </div>
     `;
 
     const screen = this.el.querySelector<HTMLElement>('.start-screen');
