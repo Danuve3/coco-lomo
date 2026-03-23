@@ -126,7 +126,7 @@ export function getAggregatedStats(): AggregatedStats | null {
   const worstPlayerScore = Math.min(...records.map(r => r.player.total));
 
   const byDifficulty = {} as AggregatedStats['byDifficulty'];
-  for (const diff of ['EASY', 'HARD', 'EXTREME'] as const) {
+  for (const diff of ['EASY', 'NORMAL', 'HARD', 'EXTREME'] as const) {
     const sub = records.filter(r => r.difficulty === diff);
     byDifficulty[diff] = { total: sub.length, wins: sub.filter(r => r.result === 'win').length };
   }

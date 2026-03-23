@@ -308,10 +308,10 @@ export class StatsScreen {
   }
 
   private difficultyContent(agg: AggregatedStats): string {
-    return (['EASY', 'HARD', 'EXTREME'] as const).map(diff => {
+    return (['EASY', 'NORMAL', 'HARD', 'EXTREME'] as const).map(diff => {
       const d = agg.byDifficulty[diff];
       if (d.total === 0) return '';
-      const label = diff === 'EASY' ? '🐣 Fácil' : diff === 'HARD' ? '🧠 Difícil' : '🔥 Extremo';
+      const label = diff === 'EASY' ? '🐣 Fácil' : diff === 'NORMAL' ? '🧠 Normal' : diff === 'HARD' ? '🔥 Difícil' : '💀 Extremo';
       const pct = Math.round((d.wins / d.total) * 100);
       return `
         <div class="diff-stat-row">
@@ -447,7 +447,7 @@ export class StatsScreen {
   private recordHTML(r: GameRecord): string {
     const date = new Date(r.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' });
     const icon = r.result === 'win' ? '🏆' : r.result === 'loss' ? '😤' : '🤝';
-    const diffLabel = r.difficulty === 'EASY' ? 'Fácil' : r.difficulty === 'HARD' ? 'Difícil' : 'Extremo';
+    const diffLabel = r.difficulty === 'EASY' ? 'Fácil' : r.difficulty === 'NORMAL' ? 'Normal' : r.difficulty === 'HARD' ? 'Difícil' : 'Extremo';
     const diff = r.player.total - r.ai.total;
     const diffStr = diff > 0 ? `+${diff}` : String(diff);
 

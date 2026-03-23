@@ -12,7 +12,7 @@ export class StartScreen {
   private animFrameId: number | null = null;
   private subtitleIntervalId: ReturnType<typeof setInterval> | null = null;
 
-  private selectedDifficulty: Difficulty = 'EXTREME';
+  private selectedDifficulty: Difficulty = 'HARD';
   private selectedFirstPlayer: FirstPlayer = 'RANDOM';
   private extinctionEnabled = true;
   private acrobaticEnabled = true;
@@ -52,7 +52,7 @@ export class StartScreen {
     const saved = loadGame();
     if (!saved) return '';
 
-    const diffLabel = saved.difficulty === 'EASY' ? 'Fácil' : saved.difficulty === 'HARD' ? 'Difícil' : 'Extremo';
+    const diffLabel = saved.difficulty === 'EASY' ? 'Fácil' : saved.difficulty === 'NORMAL' ? 'Normal' : saved.difficulty === 'HARD' ? 'Difícil' : 'Extremo';
     const phaseLabel =
       saved.phase === 'PLAYER_SELECT' ? 'Eligiendo ficha' :
       saved.phase === 'PLAYER_PLACE' || saved.phase === 'PLAYER_CONFIRM' ? 'Colocando fichas' :
@@ -247,18 +247,22 @@ export class StartScreen {
 
           <section class="config-section">
             <h2 class="config-section__title">Dificultad de la IA</h2>
-            <div class="toggle-group toggle-group--3" role="radiogroup" aria-label="Dificultad">
+            <div class="toggle-group" role="radiogroup" aria-label="Dificultad">
               <button class="toggle-btn toggle-btn--easy" data-diff="EASY" role="radio" aria-checked="false">
                 🐣 Fácil
-                <span class="toggle-btn__desc">Semi-aleatoria, ideal para aprender.</span>
+                <span class="toggle-btn__desc">Ideal para aprender.</span>
               </button>
-              <button class="toggle-btn toggle-btn--hard" data-diff="HARD" role="radio" aria-checked="false">
-                🧠 Difícil
-                <span class="toggle-btn__desc">Evalúa cada jugada. ¡Desafiante!</span>
+              <button class="toggle-btn toggle-btn--normal" data-diff="NORMAL" role="radio" aria-checked="false">
+                🧠 Normal
+                <span class="toggle-btn__desc">Ya va en serio.</span>
               </button>
-              <button class="toggle-btn toggle-btn--extreme toggle-btn--active" data-diff="EXTREME" role="radio" aria-checked="true">
-                🔥 Extremo
-                <span class="toggle-btn__desc">Adversarial: te corta el paso.</span>
+              <button class="toggle-btn toggle-btn--hard toggle-btn--active" data-diff="HARD" role="radio" aria-checked="true">
+                🔥 Difícil
+                <span class="toggle-btn__desc">Empieza a costar...</span>
+              </button>
+              <button class="toggle-btn toggle-btn--extreme" data-diff="EXTREME" role="radio" aria-checked="false">
+                💀 Extremo
+                <span class="toggle-btn__desc">Estás loco (momo)</span>
               </button>
             </div>
           </section>

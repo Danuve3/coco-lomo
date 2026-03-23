@@ -400,6 +400,7 @@ ul, ol { padding-left: 1.2em; }
 /* Toggle group (dificultad) */
 .toggle-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 .toggle-group--3 { grid-template-columns: 1fr 1fr 1fr; }
+.toggle-group--4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
 .toggle-btn {
   display: flex;
   flex-direction: column;
@@ -1392,7 +1393,7 @@ ul, ol { padding-left: 1.2em; }
   margin-top: auto;
 }
 
-/* ─── Dificultad extremo ─────────────────────────────────────────────────────── */
+/* ─── Colores de botones de dificultad ───────────────────────────────────────── */
 .toggle-btn--easy.toggle-btn--active {
   border-color: #5CAB7D;
   background: rgba(92, 171, 125, 0.1);
@@ -1401,21 +1402,29 @@ ul, ol { padding-left: 1.2em; }
 .toggle-btn--easy.toggle-btn--active .toggle-btn__desc { color: var(--text-2); }
 .toggle-btn--easy:not(.toggle-btn--active):hover { border-color: rgba(92, 171, 125, 0.5); }
 
-.toggle-btn--hard.toggle-btn--active {
+.toggle-btn--normal.toggle-btn--active {
   border-color: #D4A843;
   background: rgba(212, 168, 67, 0.1);
   color: #D4A843;
 }
+.toggle-btn--normal.toggle-btn--active .toggle-btn__desc { color: var(--text-2); }
+.toggle-btn--normal:not(.toggle-btn--active):hover { border-color: rgba(212, 168, 67, 0.5); }
+
+.toggle-btn--hard.toggle-btn--active {
+  border-color: #E07A30;
+  background: rgba(224, 122, 48, 0.1);
+  color: #E07A30;
+}
 .toggle-btn--hard.toggle-btn--active .toggle-btn__desc { color: var(--text-2); }
-.toggle-btn--hard:not(.toggle-btn--active):hover { border-color: rgba(212, 168, 67, 0.5); }
+.toggle-btn--hard:not(.toggle-btn--active):hover { border-color: rgba(224, 122, 48, 0.5); }
 
 .toggle-btn--extreme.toggle-btn--active {
-  border-color: #E05A5A;
-  background: rgba(224, 90, 90, 0.1);
-  color: #E05A5A;
+  border-color: #B44FE8;
+  background: rgba(180, 79, 232, 0.1);
+  color: #B44FE8;
 }
 .toggle-btn--extreme.toggle-btn--active .toggle-btn__desc { color: var(--text-2); }
-.toggle-btn--extreme:not(.toggle-btn--active):hover { border-color: rgba(224,90,90,0.5); }
+.toggle-btn--extreme:not(.toggle-btn--active):hover { border-color: rgba(180, 79, 232, 0.5); }
 
 /* ─── Selector de tema de losetas ───────────────────────────────────────────── */
 .tile-theme-picker {

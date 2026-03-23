@@ -13,18 +13,19 @@ export interface AiDecision {
 
 /** Selecciona la mejor jugada para la IA según la dificultad */
 export function evaluateAi(state: GameState): AiDecision | null {
-  if (state.difficulty === 'EXTREME') return evaluateExtreme(state);
-  if (state.difficulty === 'HARD') return evaluateHard(state);
+  if (state.difficulty === 'EXTREME') return evaluateMinimax(state, 6);
+  if (state.difficulty === 'HARD') return evaluateMinimax(state, 5);
+  if (state.difficulty === 'NORMAL') return evaluateNormal(state);
   return evaluateEasy(state);
 }
 
-// ─── HARD ────────────────────────────────────────────────────────────────────
+// ─── NORMAL ───────────────────────────────────────────────────────────────────
 
 /**
- * IA difícil: busca la zona+ficha+fila que maximiza el incremento de puntuación.
+ * IA normal: busca la zona+ficha+fila que maximiza el incremento de puntuación.
  * Greedy con lookahead de 1 turno.
  */
-function evaluateHard(state: GameState): AiDecision | null {
+function evaluateNormal(state: GameState): AiDecision | null {
   let bestScore = -Infinity;
   let bestChoice: AiDecision | null = null;
 
@@ -51,8 +52,7 @@ function evaluateHard(state: GameState): AiDecision | null {
 
 // ─── EXTREME ─────────────────────────────────────────────────────────────────
 
-/** Profundidad del árbol minimax: 6 = 3 rondas completas de lookahead (IA→jugador×3). */
-const MINIMAX_DEPTH = 6;
+// ─── HARD / EXTREME (Minimax) ─────────────────────────────────────────────────
 
 interface MinimaxMove {
   board: Board;
@@ -61,15 +61,10 @@ interface MinimaxMove {
 }
 
 /**
- * IA extremo — Minimax con alpha-beta pruning y move ordering.
- *
- * En vez de simular solo 1 respuesta del jugador, busca el óptimo a profundidad 4:
- * IA elige → jugador elige → IA elige → jugador elige → evalúa.
- *
- * Move ordering (mejores movimientos primero) maximiza los cutoffs de alpha-beta,
- * haciendo la búsqueda manejable sin sacrificar calidad.
+ * IA difícil/extremo — Minimax con alpha-beta pruning y move ordering.
+ * depth=5 → HARD (3 rondas IA, 2 jugador); depth=6 → EXTREME (3 rondas cada uno).
  */
-function evaluateExtreme(state: GameState): AiDecision | null {
+function evaluateMinimax(state: GameState, depth: number): AiDecision | null {
   interface RootMove extends MinimaxMove {
     zone: Zone;
     tile: Tile;
@@ -105,7 +100,7 @@ function evaluateExtreme(state: GameState): AiDecision | null {
     const score = minimax(
       move.board, state.playerBoard, move.remaining,
       state.expansionState, move.subtotal, state.playerScore.subtotal,
-      MINIMAX_DEPTH - 1, false, alpha, Infinity,
+      depth - 1, false, alpha, Infinity,
     );
     if (score > bestScore) {
       bestScore = score;
