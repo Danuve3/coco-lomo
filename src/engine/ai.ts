@@ -51,8 +51,8 @@ function evaluateHard(state: GameState): AiDecision | null {
 
 // ─── EXTREME ─────────────────────────────────────────────────────────────────
 
-/** Profundidad del árbol minimax: 4 = 2 rondas completas de lookahead (IA→jugador→IA→jugador). */
-const MINIMAX_DEPTH = 4;
+/** Profundidad del árbol minimax: 6 = 3 rondas completas de lookahead (IA→jugador×3). */
+const MINIMAX_DEPTH = 6;
 
 interface MinimaxMove {
   board: Board;
