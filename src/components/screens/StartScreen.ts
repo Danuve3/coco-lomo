@@ -290,6 +290,7 @@ export class StartScreen {
           </div>
         </div>
       </div>
+      <p class="app-version">v1.0.0</p>
     `;
 
     const screen = this.el.querySelector<HTMLElement>('.start-screen');
