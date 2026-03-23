@@ -268,6 +268,8 @@ ul, ol { padding-left: 1.2em; }
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
   background-color: var(--bg-0);
   background-size: cover;
   background-position: center top;
