@@ -1,4 +1,4 @@
-import type { GameState, Tile, Board, ExpansionState, AnimalType } from './types';
+import type { GameState, Tile, Board, ExpansionState, AnimalType, Zone } from './types';
 import { computeCollection, removeTilesByIds } from './forest';
 import { calculateBoardScore, placeTilesInRow, availableRowSpace } from './scoring';
 import { BOARD_ROWS, BOARD_COLS, COUNT_SCORE, COLOR_BONUS } from './constants';
@@ -51,71 +51,167 @@ function evaluateHard(state: GameState): AiDecision | null {
 
 // ─── EXTREME ─────────────────────────────────────────────────────────────────
 
+/** Profundidad del árbol minimax: 4 = 2 rondas completas de lookahead (IA→jugador→IA→jugador). */
+const MINIMAX_DEPTH = 4;
+
+interface MinimaxMove {
+  board: Board;
+  subtotal: number;
+  remaining: Zone[];
+}
+
 /**
- * IA extremo — adversarial mejorada:
+ * IA extremo — Minimax con alpha-beta pruning y move ordering.
  *
- * - Búsqueda exhaustiva de la asignación óptima de fichas a filas (max 5^4 combinaciones).
- * - Incluye potencial del tablero (patrones incompletos cercanos a puntuación extra).
- * - Incluye conciencia de expansiones (extinción y acrobacia).
- * - Simula la mejor respuesta del jugador con asignación greedy (rápida).
+ * En vez de simular solo 1 respuesta del jugador, busca el óptimo a profundidad 4:
+ * IA elige → jugador elige → IA elige → jugador elige → evalúa.
  *
- * score = (aiGain + potential*0.5 + expansion) * 1.5 − playerValue
+ * Move ordering (mejores movimientos primero) maximiza los cutoffs de alpha-beta,
+ * haciendo la búsqueda manejable sin sacrificar calidad.
  */
 function evaluateExtreme(state: GameState): AiDecision | null {
-  let bestScore = -Infinity;
-  let bestChoice: AiDecision | null = null;
+  interface RootMove extends MinimaxMove {
+    zone: Zone;
+    tile: Tile;
+    assignments: number[];
+  }
 
+  // Pre-computa todos los movimientos raíz con asignación exhaustiva
+  const rootMoves: RootMove[] = [];
   for (const zone of state.forestZones) {
     for (const tile of zone.tiles) {
       const collected = computeCollection(state.forestZones, zone.id, tile);
-
-      // Búsqueda exhaustiva: mejor asignación de fichas a filas para la IA
       const { board: aiSimBoard, assignments } = exhaustiveTileAssignment(
         state.aiBoard, collected, state.expansionState,
       );
-
-      // Si no se pudo colocar ninguna ficha, ignorar esta jugada
       if (collected.length > 0 && assignments.every(r => r < 0)) continue;
-
-      const aiNewSubtotal = calculateBoardScore(aiSimBoard, state.expansionState, false).subtotal;
-      const aiGain = aiNewSubtotal - state.aiScore.subtotal;
-      const aiPotential = boardPotential(aiSimBoard, state.expansionState);
-      const aiExpBonus = expansionBonus(aiSimBoard, state.expansionState, state.playerBoard);
-
-      // Bosque restante tras la jugada de la IA
+      const subtotal = calculateBoardScore(aiSimBoard, state.expansionState, false).subtotal;
       const ids = new Set(collected.map(t => t.id));
-      const remainingZones = removeTilesByIds(state.forestZones, ids);
-
-      // Mejor respuesta posible del jugador (exhaustiva — misma precisión que la IA)
-      let bestPlayerValue = 0;
-      for (const pZone of remainingZones) {
-        for (const pTile of pZone.tiles) {
-          const playerCollected = computeCollection(remainingZones, pZone.id, pTile);
-          const { board: playerSimBoard } = exhaustiveTileAssignment(
-            state.playerBoard, playerCollected, state.expansionState,
-          );
-          const playerGain =
-            calculateBoardScore(playerSimBoard, state.expansionState, false).subtotal
-            - state.playerScore.subtotal;
-          const playerPotential = boardPotential(playerSimBoard, state.expansionState) * 0.5;
-          const playerExpBonus = expansionBonus(playerSimBoard, state.expansionState, aiSimBoard);
-          const totalPlayerValue = playerGain + playerPotential + playerExpBonus;
-          if (totalPlayerValue > bestPlayerValue) bestPlayerValue = totalPlayerValue;
-        }
-      }
-
-      // Adversarial: maximiza ganancia propia y penaliza fuertemente la del jugador
-      const adversarialScore = (aiGain + aiPotential * 0.8 + aiExpBonus) * 1.5 - bestPlayerValue * 2;
-
-      if (adversarialScore > bestScore) {
-        bestScore = adversarialScore;
-        const primaryRow = assignments.find(r => r >= 0) ?? 0;
-        bestChoice = { zone: zone.id, tile, row: primaryRow, rowAssignments: assignments };
-      }
+      rootMoves.push({
+        zone, tile, board: aiSimBoard, subtotal, assignments,
+        remaining: removeTilesByIds(state.forestZones, ids),
+      });
     }
   }
 
+  // Move ordering: mejores movimientos primero → más cutoffs alpha-beta en el árbol
+  rootMoves.sort((a, b) => b.subtotal - a.subtotal);
+
+  let bestScore = -Infinity;
+  let bestChoice: AiDecision | null = null;
+  let alpha = -Infinity;
+
+  for (const move of rootMoves) {
+    const score = minimax(
+      move.board, state.playerBoard, move.remaining,
+      state.expansionState, move.subtotal, state.playerScore.subtotal,
+      MINIMAX_DEPTH - 1, false, alpha, Infinity,
+    );
+    if (score > bestScore) {
+      bestScore = score;
+      const primaryRow = move.assignments.find(r => r >= 0) ?? 0;
+      bestChoice = { zone: move.zone.id, tile: move.tile, row: primaryRow, rowAssignments: move.assignments };
+    }
+    if (score > alpha) alpha = score;
+  }
+
   return bestChoice;
+}
+
+/**
+ * Minimax con alpha-beta pruning y move ordering interno.
+ *
+ * - isMaximizing=true : turno de la IA (maximiza diferencia IA − jugador)
+ * - isMaximizing=false: turno del jugador (minimiza esa diferencia)
+ *
+ * En cada nodo pre-computa todos los movimientos del turno actual con asignación
+ * exhaustiva, los ordena (mejores primero) y recursa. Los cutoffs eliminan ramas
+ * que no pueden mejorar el resultado ya encontrado.
+ */
+function minimax(
+  aiBoard: Board,
+  playerBoard: Board,
+  forestZones: Zone[],
+  expansionState: ExpansionState,
+  aiSubtotal: number,
+  playerSubtotal: number,
+  depth: number,
+  isMaximizing: boolean,
+  alpha: number,
+  beta: number,
+): number {
+  const hasMoves = forestZones.some(z => z.tiles.length > 0);
+  if (depth === 0 || !hasMoves) {
+    return minimaxEval(aiBoard, playerBoard, expansionState, aiSubtotal, playerSubtotal);
+  }
+
+  if (isMaximizing) {
+    const moves: MinimaxMove[] = [];
+    for (const zone of forestZones) {
+      for (const tile of zone.tiles) {
+        const collected = computeCollection(forestZones, zone.id, tile);
+        const { board: newBoard, assignments } = exhaustiveTileAssignment(aiBoard, collected, expansionState);
+        if (collected.length > 0 && assignments.every(r => r < 0)) continue;
+        const subtotal = calculateBoardScore(newBoard, expansionState, false).subtotal;
+        const ids = new Set(collected.map(t => t.id));
+        moves.push({ board: newBoard, subtotal, remaining: removeTilesByIds(forestZones, ids) });
+      }
+    }
+    moves.sort((a, b) => b.subtotal - a.subtotal); // mejores primero → más beta-cutoffs
+
+    let maxVal = -Infinity;
+    for (const m of moves) {
+      const val = minimax(m.board, playerBoard, m.remaining, expansionState,
+        m.subtotal, playerSubtotal, depth - 1, false, alpha, beta);
+      if (val > maxVal) maxVal = val;
+      if (val > alpha) alpha = val;
+      if (beta <= alpha) break; // beta cutoff
+    }
+    return maxVal;
+
+  } else {
+    const moves: MinimaxMove[] = [];
+    for (const zone of forestZones) {
+      for (const tile of zone.tiles) {
+        const collected = computeCollection(forestZones, zone.id, tile);
+        const { board: newBoard } = exhaustiveTileAssignment(playerBoard, collected, expansionState);
+        const subtotal = calculateBoardScore(newBoard, expansionState, false).subtotal;
+        const ids = new Set(collected.map(t => t.id));
+        moves.push({ board: newBoard, subtotal, remaining: removeTilesByIds(forestZones, ids) });
+      }
+    }
+    moves.sort((a, b) => b.subtotal - a.subtotal); // mejores para el jugador primero → más alpha-cutoffs
+
+    let minVal = Infinity;
+    for (const m of moves) {
+      const val = minimax(aiBoard, m.board, m.remaining, expansionState,
+        aiSubtotal, m.subtotal, depth - 1, true, alpha, beta);
+      if (val < minVal) minVal = val;
+      if (val < beta) beta = val;
+      if (beta <= alpha) break; // alpha cutoff
+    }
+    return minVal;
+  }
+}
+
+/**
+ * Función de evaluación en nodos terminales.
+ * Retorna la ventaja relativa de la IA: (puntos IA − puntos jugador) + potencial diferencial.
+ */
+function minimaxEval(
+  aiBoard: Board,
+  playerBoard: Board,
+  expansionState: ExpansionState,
+  aiSubtotal: number,
+  playerSubtotal: number,
+): number {
+  const aiPot = boardPotential(aiBoard, expansionState);
+  const playerPot = boardPotential(playerBoard, expansionState);
+  const aiExp = expansionBonus(aiBoard, expansionState, playerBoard);
+  const playerExp = expansionBonus(playerBoard, expansionState, aiBoard);
+  return (aiSubtotal - playerSubtotal)
+    + (aiPot - playerPot) * 0.6
+    + (aiExp - playerExp);
 }
 
 // ─── Placement helpers ────────────────────────────────────────────────────────
