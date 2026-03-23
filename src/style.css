@@ -388,6 +388,7 @@ ul, ol { padding-left: 1.2em; }
 }
 
 .config-section { display: flex; flex-direction: column; gap: 0.75rem; }
+.config-note { font-size: 0.7rem; color: var(--text-2); line-height: 1.4; margin-top: 0.25rem; }
 .config-section__title {
   font-family: var(--font-display);
   font-size: 0.9rem;

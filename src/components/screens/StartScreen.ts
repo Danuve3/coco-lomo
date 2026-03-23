@@ -228,24 +228,6 @@ export class StartScreen {
 
         <div class="start-screen__config">
           <section class="config-section">
-            <h2 class="config-section__title">Quién empieza</h2>
-            <div class="toggle-group toggle-group--3" role="radiogroup" aria-label="Primer turno">
-              <button class="toggle-btn" data-first="HUMAN" role="radio" aria-checked="false">
-                🧑 Usuario
-                <span class="toggle-btn__desc">Tú mueves primero.</span>
-              </button>
-              <button class="toggle-btn" data-first="AI" role="radio" aria-checked="false">
-                🤖 CPU
-                <span class="toggle-btn__desc">La IA mueve primero.</span>
-              </button>
-              <button class="toggle-btn toggle-btn--active" data-first="RANDOM" role="radio" aria-checked="true">
-                🎲 Aleatorio
-                <span class="toggle-btn__desc">Se decide al azar.</span>
-              </button>
-            </div>
-          </section>
-
-          <section class="config-section">
             <h2 class="config-section__title">Dificultad de la IA</h2>
             <div class="toggle-group" role="radiogroup" aria-label="Dificultad">
               <button class="toggle-btn toggle-btn--easy" data-diff="EASY" role="radio" aria-checked="false">
@@ -261,10 +243,11 @@ export class StartScreen {
                 <span class="toggle-btn__desc">Empieza a costar...</span>
               </button>
               <button class="toggle-btn toggle-btn--extreme" data-diff="EXTREME" role="radio" aria-checked="false">
-                💀 Extremo
+                💀 Extremo*
                 <span class="toggle-btn__desc">Estás loco (momo)</span>
               </button>
             </div>
+            <p class="config-note">* En el modo extremo es posible que la IA tarde un poco más al realizar sus turnos.</p>
           </section>
 
           <section class="config-section">
