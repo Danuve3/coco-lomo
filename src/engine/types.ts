@@ -17,7 +17,7 @@ export interface Zone {
 /** board[row][col]: 5 filas × 5 columnas */
 export type Board = (Tile | null)[][];
 
-export type Difficulty = 'EASY' | 'HARD' | 'EXTREME';
+export type Difficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EXTREME';
 
 /** Quién mueve primero en cada ronda */
 export type FirstPlayer = 'HUMAN' | 'AI' | 'RANDOM';

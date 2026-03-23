@@ -16,6 +16,7 @@ import { evaluateAi } from '../engine/ai';
 import { isForestEmpty, computeCollection, replenishOneSlot } from '../engine/forest';
 import { saveGame, clearGame } from '../utils/gamePersistence';
 import { audioManager } from '../utils/audio';
+import { showAiThinking } from '../utils/aiThinking';
 
 type Listener = (state: GameState) => void;
 
@@ -146,7 +147,11 @@ export class GameStore {
       return;
     }
 
+    const hideThinking = showAiThinking();
+    // Esperar 2 frames para que el browser pinte el indicador antes de bloquear con minimax
+    await new Promise<void>(resolve => requestAnimationFrame(() => { requestAnimationFrame(() => resolve()); }));
     const decision = evaluateAi(this._state);
+    hideThinking();
 
     if (!decision) {
       this.setState(finalizeGame({ ...this._state, phase: 'GAME_END' }));

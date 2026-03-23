@@ -1,7 +1,7 @@
-import type { GameState, Tile, Board, ExpansionState, AnimalType } from './types';
+import type { GameState, Tile, Board, ExpansionState, AnimalType, Zone } from './types';
 import { computeCollection, removeTilesByIds } from './forest';
 import { calculateBoardScore, placeTilesInRow, availableRowSpace } from './scoring';
-import { BOARD_ROWS, BOARD_COLS, COUNT_SCORE } from './constants';
+import { BOARD_ROWS, BOARD_COLS, COUNT_SCORE, COLOR_BONUS } from './constants';
 
 export interface AiDecision {
   zone: number;
@@ -13,18 +13,19 @@ export interface AiDecision {
 
 /** Selecciona la mejor jugada para la IA según la dificultad */
 export function evaluateAi(state: GameState): AiDecision | null {
-  if (state.difficulty === 'EXTREME') return evaluateExtreme(state);
-  if (state.difficulty === 'HARD') return evaluateHard(state);
+  if (state.difficulty === 'EXTREME') return evaluateMinimax(state, 6);
+  if (state.difficulty === 'HARD') return evaluateMinimax(state, 5);
+  if (state.difficulty === 'NORMAL') return evaluateNormal(state);
   return evaluateEasy(state);
 }
 
-// ─── HARD ────────────────────────────────────────────────────────────────────
+// ─── NORMAL ───────────────────────────────────────────────────────────────────
 
 /**
- * IA difícil: busca la zona+ficha+fila que maximiza el incremento de puntuación.
+ * IA normal: busca la zona+ficha+fila que maximiza el incremento de puntuación.
  * Greedy con lookahead de 1 turno.
  */
-function evaluateHard(state: GameState): AiDecision | null {
+function evaluateNormal(state: GameState): AiDecision | null {
   let bestScore = -Infinity;
   let bestChoice: AiDecision | null = null;
 
@@ -51,69 +52,161 @@ function evaluateHard(state: GameState): AiDecision | null {
 
 // ─── EXTREME ─────────────────────────────────────────────────────────────────
 
-/**
- * IA extremo — adversarial mejorada:
- *
- * - Búsqueda exhaustiva de la asignación óptima de fichas a filas (max 5^4 combinaciones).
- * - Incluye potencial del tablero (patrones incompletos cercanos a puntuación extra).
- * - Incluye conciencia de expansiones (extinción y acrobacia).
- * - Simula la mejor respuesta del jugador con asignación greedy (rápida).
- *
- * score = (aiGain + potential*0.5 + expansion) * 1.5 − playerValue
- */
-function evaluateExtreme(state: GameState): AiDecision | null {
-  let bestScore = -Infinity;
-  let bestChoice: AiDecision | null = null;
+// ─── HARD / EXTREME (Minimax) ─────────────────────────────────────────────────
 
+interface MinimaxMove {
+  board: Board;
+  subtotal: number;
+  remaining: Zone[];
+}
+
+/**
+ * IA difícil/extremo — Minimax con alpha-beta pruning y move ordering.
+ * depth=5 → HARD (3 rondas IA, 2 jugador); depth=6 → EXTREME (3 rondas cada uno).
+ */
+function evaluateMinimax(state: GameState, depth: number): AiDecision | null {
+  interface RootMove extends MinimaxMove {
+    zone: Zone;
+    tile: Tile;
+    assignments: number[];
+  }
+
+  // Pre-computa todos los movimientos raíz con asignación exhaustiva
+  const rootMoves: RootMove[] = [];
   for (const zone of state.forestZones) {
     for (const tile of zone.tiles) {
       const collected = computeCollection(state.forestZones, zone.id, tile);
-
-      // Búsqueda exhaustiva: mejor asignación de fichas a filas para la IA
       const { board: aiSimBoard, assignments } = exhaustiveTileAssignment(
         state.aiBoard, collected, state.expansionState,
       );
-
-      // Si no se pudo colocar ninguna ficha, ignorar esta jugada
       if (collected.length > 0 && assignments.every(r => r < 0)) continue;
-
-      const aiNewSubtotal = calculateBoardScore(aiSimBoard, state.expansionState, false).subtotal;
-      const aiGain = aiNewSubtotal - state.aiScore.subtotal;
-      const aiPotential = boardPotential(aiSimBoard, state.expansionState);
-      const aiExpBonus = expansionBonus(aiSimBoard, state.expansionState, state.playerBoard);
-
-      // Bosque restante tras la jugada de la IA
+      const subtotal = calculateBoardScore(aiSimBoard, state.expansionState, false).subtotal;
       const ids = new Set(collected.map(t => t.id));
-      const remainingZones = removeTilesByIds(state.forestZones, ids);
-
-      // Mejor respuesta posible del jugador (greedy, rápida)
-      let bestPlayerValue = 0;
-      for (const pZone of remainingZones) {
-        for (const pTile of pZone.tiles) {
-          const playerCollected = computeCollection(remainingZones, pZone.id, pTile);
-          const { board: playerSimBoard } = greedyTileAssignment(
-            state.playerBoard, playerCollected, state.expansionState,
-          );
-          const playerGain =
-            calculateBoardScore(playerSimBoard, state.expansionState, false).subtotal
-            - state.playerScore.subtotal;
-          const playerPotential = boardPotential(playerSimBoard, state.expansionState) * 0.4;
-          const totalPlayerValue = playerGain + playerPotential;
-          if (totalPlayerValue > bestPlayerValue) bestPlayerValue = totalPlayerValue;
-        }
-      }
-
-      const adversarialScore = (aiGain + aiPotential * 0.5 + aiExpBonus) * 1.5 - bestPlayerValue;
-
-      if (adversarialScore > bestScore) {
-        bestScore = adversarialScore;
-        const primaryRow = assignments.find(r => r >= 0) ?? 0;
-        bestChoice = { zone: zone.id, tile, row: primaryRow, rowAssignments: assignments };
-      }
+      rootMoves.push({
+        zone, tile, board: aiSimBoard, subtotal, assignments,
+        remaining: removeTilesByIds(state.forestZones, ids),
+      });
     }
   }
 
+  // Move ordering: mejores movimientos primero → más cutoffs alpha-beta en el árbol
+  rootMoves.sort((a, b) => b.subtotal - a.subtotal);
+
+  let bestScore = -Infinity;
+  let bestChoice: AiDecision | null = null;
+  let alpha = -Infinity;
+
+  for (const move of rootMoves) {
+    const score = minimax(
+      move.board, state.playerBoard, move.remaining,
+      state.expansionState, move.subtotal, state.playerScore.subtotal,
+      depth - 1, false, alpha, Infinity,
+    );
+    if (score > bestScore) {
+      bestScore = score;
+      const primaryRow = move.assignments.find(r => r >= 0) ?? 0;
+      bestChoice = { zone: move.zone.id, tile: move.tile, row: primaryRow, rowAssignments: move.assignments };
+    }
+    if (score > alpha) alpha = score;
+  }
+
   return bestChoice;
+}
+
+/**
+ * Minimax con alpha-beta pruning y move ordering interno.
+ *
+ * - isMaximizing=true : turno de la IA (maximiza diferencia IA − jugador)
+ * - isMaximizing=false: turno del jugador (minimiza esa diferencia)
+ *
+ * En cada nodo pre-computa todos los movimientos del turno actual con asignación
+ * exhaustiva, los ordena (mejores primero) y recursa. Los cutoffs eliminan ramas
+ * que no pueden mejorar el resultado ya encontrado.
+ */
+function minimax(
+  aiBoard: Board,
+  playerBoard: Board,
+  forestZones: Zone[],
+  expansionState: ExpansionState,
+  aiSubtotal: number,
+  playerSubtotal: number,
+  depth: number,
+  isMaximizing: boolean,
+  alpha: number,
+  beta: number,
+): number {
+  const hasMoves = forestZones.some(z => z.tiles.length > 0);
+  if (depth === 0 || !hasMoves) {
+    return minimaxEval(aiBoard, playerBoard, expansionState, aiSubtotal, playerSubtotal);
+  }
+
+  if (isMaximizing) {
+    const moves: MinimaxMove[] = [];
+    for (const zone of forestZones) {
+      for (const tile of zone.tiles) {
+        const collected = computeCollection(forestZones, zone.id, tile);
+        const { board: newBoard, assignments } = exhaustiveTileAssignment(aiBoard, collected, expansionState);
+        if (collected.length > 0 && assignments.every(r => r < 0)) continue;
+        const subtotal = calculateBoardScore(newBoard, expansionState, false).subtotal;
+        const ids = new Set(collected.map(t => t.id));
+        moves.push({ board: newBoard, subtotal, remaining: removeTilesByIds(forestZones, ids) });
+      }
+    }
+    moves.sort((a, b) => b.subtotal - a.subtotal); // mejores primero → más beta-cutoffs
+
+    let maxVal = -Infinity;
+    for (const m of moves) {
+      const val = minimax(m.board, playerBoard, m.remaining, expansionState,
+        m.subtotal, playerSubtotal, depth - 1, false, alpha, beta);
+      if (val > maxVal) maxVal = val;
+      if (val > alpha) alpha = val;
+      if (beta <= alpha) break; // beta cutoff
+    }
+    return maxVal;
+
+  } else {
+    const moves: MinimaxMove[] = [];
+    for (const zone of forestZones) {
+      for (const tile of zone.tiles) {
+        const collected = computeCollection(forestZones, zone.id, tile);
+        const { board: newBoard } = exhaustiveTileAssignment(playerBoard, collected, expansionState);
+        const subtotal = calculateBoardScore(newBoard, expansionState, false).subtotal;
+        const ids = new Set(collected.map(t => t.id));
+        moves.push({ board: newBoard, subtotal, remaining: removeTilesByIds(forestZones, ids) });
+      }
+    }
+    moves.sort((a, b) => b.subtotal - a.subtotal); // mejores para el jugador primero → más alpha-cutoffs
+
+    let minVal = Infinity;
+    for (const m of moves) {
+      const val = minimax(aiBoard, m.board, m.remaining, expansionState,
+        aiSubtotal, m.subtotal, depth - 1, true, alpha, beta);
+      if (val < minVal) minVal = val;
+      if (val < beta) beta = val;
+      if (beta <= alpha) break; // alpha cutoff
+    }
+    return minVal;
+  }
+}
+
+/**
+ * Función de evaluación en nodos terminales.
+ * Retorna la ventaja relativa de la IA: (puntos IA − puntos jugador) + potencial diferencial.
+ */
+function minimaxEval(
+  aiBoard: Board,
+  playerBoard: Board,
+  expansionState: ExpansionState,
+  aiSubtotal: number,
+  playerSubtotal: number,
+): number {
+  const aiPot = boardPotential(aiBoard, expansionState);
+  const playerPot = boardPotential(playerBoard, expansionState);
+  const aiExp = expansionBonus(aiBoard, expansionState, playerBoard);
+  const playerExp = expansionBonus(playerBoard, expansionState, aiBoard);
+  return (aiSubtotal - playerSubtotal)
+    + (aiPot - playerPot) * 0.6
+    + (aiExp - playerExp);
 }
 
 // ─── Placement helpers ────────────────────────────────────────────────────────
@@ -138,7 +231,7 @@ function exhaustiveTileAssignment(
     if (idx === tiles.length) {
       const score =
         calculateBoardScore(current, expansionState, false).subtotal
-        + boardPotential(current, expansionState) * 0.5;
+        + boardPotential(current, expansionState) * 0.8;
       if (score > bestScore) {
         bestScore = score;
         bestBoard = current;
@@ -161,59 +254,56 @@ function exhaustiveTileAssignment(
   return { board: bestBoard, assignments: bestAssignment };
 }
 
-/**
- * Asignación greedy de fichas a filas (para simular respuesta del jugador).
- * O(fichas × filas) — rápida.
- */
-function greedyTileAssignment(
-  board: Board,
-  tiles: readonly Tile[],
-  expansionState: ExpansionState,
-): { board: Board } {
-  let current = board;
-  for (const tile of tiles) {
-    let bestRow = -1;
-    let bestRowScore = -Infinity;
-    for (let row = 0; row < BOARD_ROWS; row++) {
-      if (availableRowSpace(current, row) === 0) continue;
-      const sim = placeTilesInRow(current, [tile], row);
-      const score =
-        calculateBoardScore(sim, expansionState, false).subtotal
-        + boardPotential(sim, expansionState) * 0.4;
-      if (score > bestRowScore) {
-        bestRowScore = score;
-        bestRow = row;
-      }
-    }
-    if (bestRow >= 0) {
-      current = placeTilesInRow(current, [tile], bestRow);
-    }
-  }
-  return { board: current };
-}
 
 // ─── Heuristics ───────────────────────────────────────────────────────────────
 
 /**
  * Estima el potencial de puntuación futura de un tablero.
- * Premia patrones incompletos cercanos a completarse:
- * - Grupos de misma especie en fila 4 (índice 3) cerca del siguiente tier
- * - Diversidad en fila 5 (índice 4) cerca del siguiente tier
- * - Columnas con 2 de 3 fichas del mismo animal (→ +4 o +3)
- * - Filas/columnas monochrome parcialmente completas (→ +5 de color)
- * - Proximidad al bonus acrobático
+ * Modela con precisión las 4 dimensiones del scoring:
+ *
+ * - Columnas (rows 0-2): pares +3, tripletes +4 adicionales
+ * - Fila 4 (índice 3): grupos de misma especie (COUNT_SCORE)
+ * - Fila 5 (índice 4): diversidad de especies (COUNT_SCORE)
+ * - Color bonus: decaimiento exponencial según proximidad al completar (+5)
+ * - Expansiones: acrobacia
  */
 function boardPotential(board: Board, expansionState: ExpansionState): number {
   let potential = 0;
 
+  // ── Columnas (filas 0,1,2): pares y tripletes ──────────────────────────────
+  // scoreRows12: +3 por par r1+r2 mismo animal
+  // scoreRow0:   +4 por triplete r0+r1+r2 mismo animal
+  for (let col = 0; col < BOARD_COLS; col++) {
+    const r0 = board[0][col];
+    const r1 = board[1][col];
+    const r2 = board[2][col];
+
+    // Par r1+r2 completo, r0 vacío → potencial de +4 (triplete)
+    if (r1 && r2 && r1.animal === r2.animal && !r0) {
+      potential += 4 * 0.65;
+    }
+    // Solo uno de r1/r2 lleno → potencial de par +3
+    if ((r1 !== null) !== (r2 !== null)) {
+      potential += 3 * 0.35;
+    }
+    // r0+r1 mismo animal, r2 vacío → potencial de par r1+r2 (+3) y triplete (+4)
+    if (r0 && r1 && r0.animal === r1.animal && !r2) potential += 3 * 0.35;
+    // r0+r2 mismo animal, r1 vacío → misma oportunidad
+    if (r0 && r2 && r0.animal === r2.animal && !r1) potential += 3 * 0.35;
+  }
+
   // ── Fila 4 (índice 3): grupos de misma especie ──────────────────────────────
   const row3Counts = new Map<AnimalType, number>();
+  let row3Empty = 0;
   for (const t of board[3]) {
     if (t) row3Counts.set(t.animal, (row3Counts.get(t.animal) ?? 0) + 1);
+    else row3Empty++;
   }
-  for (const cnt of row3Counts.values()) {
-    const marginal = (COUNT_SCORE[cnt + 1] ?? 0) - (COUNT_SCORE[cnt] ?? 0);
-    potential += marginal * 0.6;
+  if (row3Empty > 0) {
+    for (const cnt of row3Counts.values()) {
+      const marginal = (COUNT_SCORE[cnt + 1] ?? 0) - (COUNT_SCORE[cnt] ?? 0);
+      potential += marginal * 0.7;
+    }
   }
 
   // ── Fila 5 (índice 4): diversidad de especies ──────────────────────────────
@@ -225,30 +315,12 @@ function boardPotential(board: Board, expansionState: ExpansionState): number {
   }
   if (row4Empty > 0) {
     const marginal = (COUNT_SCORE[row4Species.size + 1] ?? 0) - (COUNT_SCORE[row4Species.size] ?? 0);
-    potential += marginal * 0.5;
+    potential += marginal * 0.6;
   }
 
-  // ── Alineación columnas (filas 0,1,2) ─────────────────────────────────────
-  for (let col = 0; col < BOARD_COLS; col++) {
-    const r0 = board[0][col];
-    const r1 = board[1][col];
-    const r2 = board[2][col];
-
-    // Par en filas 1+2 incompleto — potencial de +3
-    if ((r1 !== null) !== (r2 !== null)) potential += 0.8;
-
-    // Triplete: 2 de 3 con mismo animal → potencial de +4 (row0) o +3 (rows12)
-    const animals = [r0?.animal, r1?.animal, r2?.animal].filter((a): a is AnimalType => !!a);
-    if (animals.length >= 2) {
-      const countMap = new Map<AnimalType, number>();
-      for (const a of animals) countMap.set(a, (countMap.get(a) ?? 0) + 1);
-      const maxCount = Math.max(...countMap.values());
-      if (maxCount === 2) potential += 1.5;
-    }
-  }
-
-  // ── Bonus de color: filas/columnas monocromas parciales ────────────────────
-  // Filas
+  // ── Bonus de color: decaimiento exponencial según proximidad ───────────────
+  // Cuanto más cerca de completar una fila/columna monocroma, más valor.
+  // 4/5 iguales: +2.75 | 3/5: +1.51 | 2/5: +0.83
   for (let row = 0; row < BOARD_ROWS; row++) {
     const tiles = board[row].filter((t): t is NonNullable<typeof t> => t !== null);
     if (tiles.length < 2) continue;
@@ -256,11 +328,10 @@ function boardPotential(board: Board, expansionState: ExpansionState): number {
     for (const t of tiles) colorCounts.set(t.color, (colorCounts.get(t.color) ?? 0) + 1);
     const maxSameColor = Math.max(...colorCounts.values());
     if (maxSameColor === tiles.length) {
-      // Todos los colocados son del mismo color → potencial según proximidad al completar
-      potential += (tiles.length - 1) * 0.4;
+      const missing = BOARD_COLS - tiles.length;
+      if (missing > 0) potential += COLOR_BONUS * Math.pow(0.55, missing);
     }
   }
-  // Columnas
   for (let col = 0; col < BOARD_COLS; col++) {
     const tiles = board.map(r => r[col]).filter((t): t is NonNullable<typeof t> => t !== null);
     if (tiles.length < 2) continue;
@@ -268,7 +339,8 @@ function boardPotential(board: Board, expansionState: ExpansionState): number {
     for (const t of tiles) colorCounts.set(t.color, (colorCounts.get(t.color) ?? 0) + 1);
     const maxSameColor = Math.max(...colorCounts.values());
     if (maxSameColor === tiles.length) {
-      potential += (tiles.length - 1) * 0.4;
+      const missing = BOARD_ROWS - tiles.length;
+      if (missing > 0) potential += COLOR_BONUS * Math.pow(0.55, missing);
     }
   }
 
@@ -276,7 +348,6 @@ function boardPotential(board: Board, expansionState: ExpansionState): number {
   if (expansionState.acrobaticTarget) {
     const topRight = board[0][BOARD_COLS - 1];
     if (topRight === null) {
-      // Casilla libre — cada copia del animal objetivo en el tablero aumenta la probabilidad
       let targetCount = 0;
       for (const row of board) {
         for (const t of row) {
