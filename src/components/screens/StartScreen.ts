@@ -289,10 +289,10 @@ export class StartScreen {
             </button>
           </div>
         </div>
-      </div>
-      <div class="app-footer">
-        <span>By Danuve</span>
-        <span>v1.0.0</span>
+        <div class="app-footer">
+          <span>By Danuve</span>
+          <span>v1.0.0</span>
+        </div>
       </div>
     `;
 
